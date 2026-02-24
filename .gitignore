@@ -1,0 +1,65 @@
+# Node.js 
+node_modules/
+npm-debug.log*
+.env
+dist/
+/frontend
+
+# Python 
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Java 
+target/
+*.class
+*.jar
+
+# 일반적인 항목들
+.DS_Store
+*.log
+*.tmp
+.idea/
+.vscode/
+*.sh
+Jenkinsfile
+*.lock
+*.ttf
+.env.example
+*.toml
+
+
+/logs
+
+#backend 항목
+/backend/data_pipeline/doc/*
+/backend/data_pipeline/Results/1.Converted_images/IMG/*
+/backend/data_pipeline/Results/1.Converted_images/PDF/*
+/backend/data_pipeline/Results/2.LayoutDetection/PDF/*
+/backend/data_pipeline/Results/2.LayoutDetection/IMG/*
+/backend/data_pipeline/Results/3.Crop_image/IMG/*
+/backend/data_pipeline/Results/3.Crop_image/PDF/*
+/backend/.env
+/backend/data_pipeline/Results/4.OCR_results/*
+/backend/data_pipeline/Results/5.Completion_results/*
+/backend/data_pipeline/Results/6.summarize
+/backend/data_pipeline/Results/7.stt
+/backend/data_pipeline/Results/8.mindmap
+/backend/data_pipeline/UVDoc/data/doc3D/*
+/backend/data_pipeline/UVDoc/data/UVDoc/*
+/backend/data_pipeline/temp/*
+/backend/data_pipeline/pipe/parser/test_result
+/backend/data_pipeline/pipe/parser/test_doc
+/backend/skill
+/backend/utils
+/backend/api
+/backend/services
+/backend/app.py
+/backend/config.py
+/backend/debug_routes.py
+/backend/main.py
+
+#sessions
+/backend/data_pipeline/sessions
+
