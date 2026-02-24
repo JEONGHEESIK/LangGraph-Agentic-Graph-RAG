@@ -20,7 +20,7 @@ This project was developed to overcome the limitations of traditional single-vec
 LangGraph-Agentic-Graph RAG is a vector–graph hybrid RAG platform powered by **LangGraph + SGLang**. The ingestion pipeline converts raw documents into Markdown chunks and graph metadata via LangGraph state machines with checkpoint persistence. During query time, a hop-based router with quality-gate backtracking selects among three retrieval paths—Vector, Weaviate GraphRAG, or Neo4j GraphDB—to generate answers.
 
 <div align="center">
-<img src="https://github.com/user-attachments/assets/d8c70c82-ec10-4460-a5a4-5b88000d35b6" width="512" height="768" ></img><br/>
+<img src="https://github.com/user-attachments/assets/f13ed792-91e0-4bcc-8032-3065d0c91179" width="512" height="768" ></img><br/>
 </div> 
 
 ---
