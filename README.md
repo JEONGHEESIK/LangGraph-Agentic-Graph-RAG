@@ -102,7 +102,7 @@ Handled by `LangGraphUploadPipeline` (`langgraph_upload_pipeline.py`) with `Memo
 4. **Graph Upsert**:
    - `GraphSchemaManager` ensures Weaviate GraphEntity/GraphEvent/GraphRelation collections exist with cross-references (source/target/event)
    - `LegacyGraphIngestor` / `Neo4jManager` MERGEs nodes/relationships into Neo4j with deterministic UUIDs
-5. **Late Chunking & Embedding**: `embedding_text.py` splits Markdown into chunks and uploads into the Weaviate TextDocument collection via `SharedEmbeddingModel` (Qwen3-Embedding-4B).
+5. **Late Chunking & Embedding**: `embedding_text.py` splits Markdown into chunks and uploads into the Weaviate TextDocument collection via `SharedEmbeddingModel`.
 
 ---
 
