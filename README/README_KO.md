@@ -21,7 +21,7 @@
 
 이러한 확장성을 깊이 고려하여 아키텍처를 발전시킨 결과, 현재의 프레임워크가 완성되었습니다. 이 시스템은 사용자의 의도를 동적으로 분류하여 깊이 있는 지식 검색(Graph RAG)과 연산 작업(계산기, SQL, API 등) 사이를 매끄럽게 전환합니다. 지능형 백트래킹(Intelligent backtracking) 및 품질 검증(Quality Gate) 로직과 결합된 이 프로젝트는, 단순한 질의응답을 넘어 능동적으로 사고하고 도구를 실행하는 AI 시스템을 위한 가장 확장성 높은 기반을 제공합니다.
 
-LangGraph-Agentic-Graph RAG는 **LangGraph + SGLang** 기반의 벡터–그래프 하이브리드 RAG 플랫폼입니다. 수집 파이프라인은 LangGraph 상태 머신과 체크포인트 영속성을 통해 원시 문서를 Markdown 청크 및 그래프 메타데이터로 변환합니다. 쿼리 시점에는 품질 게이트 백트래킹이 적용된 홉 기반 라우터가 Vector, Weaviate GraphRAG, Neo4j GraphDB 세 가지 검색 경로 중 하나를 선택하여 답변을 생성합니다.
+LangGraph-Agentic-Graph RAG는 LangGraph와 SGLang을 기반으로 구동되는 완전 자율형 에이전틱 AI(Agentic AI)이자 벡터-그래프 하이브리드 RAG 플랫폼입니다. 데이터 수집(Ingestion) 파이프라인은 체크포인트 영속성을 지원하는 LangGraph 상태 머신을 통해 원본 문서를 마크다운 청크(Chunk)와 그래프 메타데이터로 변환합니다. 쿼리 시점에는 의도 기반 툴 라우터가 계산 및 외부 작업을 MCP를 통해 외부 도구로 동적 위임합니다. 반면 지식 기반 쿼리는 퀄리티 게이트 백트래킹이 적용된 홉(Hop) 기반 라우터를 거쳐 세 가지 검색 경로(Vector, Weaviate GraphRAG, Neo4j GraphDB) 중 최적의 경로를 선택하여 정교한 답변을 생성합니다.
 
 <div align="center">
 <img src="https://github.com/user-attachments/assets/504ea0fa-ed9a-4664-9095-042e01debc65" width="512" height="768" ></img><br/>

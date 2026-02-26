@@ -21,8 +21,7 @@
 
 基于这种对高可扩展性的考量，我扩展了整体架构。最终形成的框架能够动态对用户意图进行分类，在深度知识检索（Graph RAG）和计算任务（计算器、SQL、API 等）之间实现无缝切换。结合智能回溯和 Quality Gate 质量验证，本项目不仅打破了传统问答的限制，更为构建能够主动思考并执行工具的 AI 系统奠定了高度可扩展的坚实基础。
 
-LangGraph-Graph RAG 是一个基于 **LangGraph + SGLang** 的向量–图混合 RAG 平台。
-数据摄取管道通过带有检查点持久化的 LangGraph 状态机将原始文档转换为 Markdown 块和图元数据。在查询阶段，带有质量门控回溯的跳数路由器从 Vector、Weaviate GraphRAG 或 Neo4j GraphDB 三条检索路径中选择一条来生成答案。
+LangGraph-Agentic-Graph RAG 是一个基于 LangGraph + SGLang 驱动的完全自主的 Agentic AI 与向量-图混合 RAG 平台。数据摄取 (Ingestion) 流水线通过具有检查点持久化功能的 LangGraph 状态机，将原始文档转换为 Markdown 分块和图元数据。在查询阶段，基于意图的工具路由器会动态地将计算任务通过 MCP 委托给外部工具；而知识类查询则会通过带有质量网关回溯（Quality-gate backtracking）的基于跳数（Hop-based）的路由器，在三条检索路径（Vector、Weaviate GraphRAG 或 Neo4j GraphDB）中进行选择，从而生成精确的答案。
 
 <div align="center">
 <img src="https://github.com/user-attachments/assets/504ea0fa-ed9a-4664-9095-042e01debc65" width="512" height="768" ></img><br/>

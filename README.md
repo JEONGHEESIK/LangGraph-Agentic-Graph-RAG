@@ -21,7 +21,7 @@ However, during the architectural design phase, I realized that by simply adding
 
 With this high scalability in mind, the architecture was expanded. The resulting framework dynamically classifies user intent to seamlessly switch between deep knowledge retrieval and computational tasks (Calculator, SQL, APIs). Coupled with intelligent backtracking and Quality Gate validation, this project lays a highly scalable foundation for AI systems that not only retrieve information but actively think and execute tools.
 
-LangGraph-Agentic-Graph RAG is a vector–graph hybrid RAG platform powered by **LangGraph + SGLang**. The ingestion pipeline converts raw documents into Markdown chunks and graph metadata via LangGraph state machines with checkpoint persistence. During query time, a hop-based router with quality-gate backtracking selects among three retrieval paths—Vector, Weaviate GraphRAG, or Neo4j GraphDB—to generate answers.
+LangGraph-Agentic-Graph RAG is a fully autonomous Agentic AI and vector–graph hybrid RAG platform powered by LangGraph + SGLang. The ingestion pipeline converts raw documents into Markdown chunks and graph metadata via LangGraph state machines with checkpoint persistence. During query time, an intent-based tool router dynamically delegates computational tasks to external tools (via MCP), while knowledge queries are routed through a hop-based router with quality-gate backtracking, selecting among three retrieval paths—Vector, Weaviate GraphRAG, or Neo4j GraphDB—to generate precise answers.
 
 <div align="center">
 <img src="https://github.com/user-attachments/assets/504ea0fa-ed9a-4664-9095-042e01debc65" width="512" height="768" ></img><br/>
