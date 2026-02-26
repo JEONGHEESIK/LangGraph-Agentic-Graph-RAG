@@ -96,8 +96,8 @@ planner →  router →┬→ vector_retriever  ──→┐
 1. **변환 & 레이아웃**: `run_file_processor.py`가 PDF/Office/이미지/오디오 입력을 처리 → `Results/1.Converted_images` + `Results/2.LayoutDetection`.
 2. **OCR & Markdown**: SGLang 기반 OCRFlux를 사용하는 `run_ocr_processing()`이 페이지별 Markdown 생성 → `Results/4.OCR_results`.
 3. **LLM 메타데이터 추출**: `LLMMetadataExtractor`가 Markdown에서 엔티티/이벤트/관계 추출 → `Results/8.graph_metadata/*.graph.json`.
-   - **청크 크기**: configurable via `GRAPH_EXTRACTOR_CHUNK_SIZE`
-   - **타임아웃**: configurable via `GRAPH_EXTRACTOR_API_TIMEOUT`
+   - **청크 크기**: configurable via `GRAPH_EXTRACTOR_CHUNK_SIZE
+   - **타임아웃**: configurable via `GRAPH_EXTRACTOR_API_TIMEOUT
    - **재시도 로직**: 타임아웃 발생 시 SGLang generator 서버 재시작 후 동일 청크 1회 재시도
    - **Keepalive**: 처리 중 20초마다 서버 touch하는 백그라운드 스레드
 4. **그래프 업서트**:
@@ -109,16 +109,25 @@ planner →  router →┬→ vector_retriever  ──→┐
 
 ## 쿼리 / 추론 레이어
 
-`GraphReasoner` (`graph_reasoner.py`)가 `MemorySaver` 체크포인팅과 품질 게이트 백트래킹으로 처리합니다:
+`GraphReasoner` (`graph_reasoner.py`)가 `MemorySaver` 체크포인팅과 지능형 백트래킹으로 처리합니다:
 
-1. **홉 분류기** (`hop_classifier.py`): 쿼리 복잡도(홉 수)를 추정하여 검색 경로를 결정합니다.
-2. **플래너**: 쿼리를 분석하고 `max_hops`를 설정하며 검색 계획을 초기화합니다.
-3. **라우터**: 홉 분류에 따라 Path 1/2/3을 선택합니다.
+1. **홉 분류기 (LLM + Heuristic 하이브리드)**: 
+   - **Primary**: LLM 기반 분류기가 SGLang 서버를 통해 쿼리 복잡도(1–6 홉)를 추정합니다.
+   - **Fallback**: 키워드, 화살표 개수, 개념 구분자 기반 휴리스틱 점수화.
+   - 추정된 홉 수가 초기 검색 경로를 결정합니다.
+2. **플래너**: 쿼리를 분석하고 LLM+Heuristic 분류 기반으로 `max_hops`를 동적으로 설정하며 검색 계획을 초기화합니다.
+3. **라우터**: 홉 분류와 쿼리 특성에 따라 Path 1/2/3을 선택합니다.
+   - **초기 라우팅**: 홉 ≤ 2 → Path 1 (Vector), 3–5 → Path 2 (Cross-Ref), ≥ 6 → Path 3 (GraphDB).
+   - **백트래킹 라우팅**: `_select_best_path()`를 사용해 남은 미시도 경로를 평가하며, 쿼리 키워드와 홉 수 기반으로 각 경로의 점수를 계산하여 가장 적합한 대안을 선택합니다.
 4. **검색 노드**:
-   - **Path 1 – Vector RAG**: `rag_pipeline`의 TextSearcher + Reranker
+   - **Path 1 – Vector RAG**: `rag_pipeline`의 TextSearcher + Reranker (기존 벡터 검색으로 위임, quality=1.0).
    - **Path 2 – Cross-Ref GraphRAG**: BM25 시드 엔티티 → Weaviate Cross-Reference `QueryReference` 멀티홉 탐색 (source/target/event refs)을 수행해 Neo4j로 escalation하기 전에 질의 인접 엔티티/이벤트를 Weaviate 내부에서 추가 확보합니다.
-  - **Path 3 – Neo4j GraphDB**: `legacy_graph_client.py` Cypher 템플릿을 통한 6홉 이상 스키마 집중 탐색 또는 Weaviate Cross-Reference가 바닥났을 때의 심층 탐색.
-5. **품질 게이트 + 관찰자 LLM**: 모든 경로 결과가 관찰자 LLM에 의해 0.0–1.0으로 점수화됩니다 (Path 1은 위임 시 기본값 1.0). 점수가 설정된 품질 임계값(threshold)보다 낮으면 워크플로우가 라우터로 되돌아가 폴백 순서(Vector → Cross-Ref → GraphDB)의 다음 경로를 시도하며, 경로 통과 또는 2회 재시도 한도 도달 시까지 반복합니다. 한도 도달 후에는 현재 컨텍스트로 진행하면서 `answer_notes`에 품질 저하를 표시합니다.
+   - **Path 3 – Neo4j GraphDB**: `legacy_graph_client.py` Cypher 템플릿을 통한 6홉 이상 스키마 집중 탐색 또는 Weaviate Cross-Reference가 바닥났을 때의 심층 탐색.
+5. **품질 게이트 + 관찰자 LLM**: 모든 경로 결과가 관찰자 LLM에 의해 0.0–1.0으로 점수화됩니다 (Path 1은 위임 시 기본값 1.0). 
+   - **통과 조건**: quality ≥ threshold → 다음 단계로 진행.
+   - **백트래킹**: quality < threshold → `_select_best_path()`가 쿼리 특성(키워드, 홉 수) 기반으로 남은 경로를 평가하여 가장 적합한 대안 경로를 선택합니다.
+   - **종료**: 모든 경로 소진 또는 MAX_BACKTRACK 한도 도달 시 현재 컨텍스트로 진행하면서 `answer_notes`에 품질 저하를 표시합니다.
+   - **경로 추적**: `tried_paths` state 필드로 동일 경로 재시도를 방지합니다.
 6. **GoT Thought Expander** (`GOT_MODE_ENABLED=true`): 분기, 점수화, 병합을 통한 그래프 형태의 사고 탐색.
    - 각 단계에서 최대 `GOT_BRANCH_FACTOR`개의 후보 쿼리를 병렬로 확장합니다.
    - 관찰자 LLM이 각 분기를 관련성, 커버리지, 신규성 기준으로 0.0–1.0 점수화합니다.
@@ -133,12 +142,15 @@ planner →  router →┬→ vector_retriever  ──→┐
 ## 모듈 맵
 
 ```
+## 모듈 맵
+
+```
 backend/
 ├── main.py                          # [Excluded] FastAPI 서버 진입점
-├── app.py                           # [Excluded] 애플리케이션 설정 & 미들웨어
 ├── config.py                        # [Excluded] 서버 수준 설정
+├── logging_config.py                # [Excluded] 로깅 설정
 │
-├── api/                             # [Excluded] API 레이어
+├── api/                             # API 레이어
 │   ├── routes.py                    # [Excluded] 주요 업로드/파일/세션 라우트
 │   ├── chat.py                      # [Excluded] POST /v1/chat 엔드포인트
 │   ├── ocr_routes.py                # [Excluded] OCR 처리 엔드포인트
@@ -154,7 +166,9 @@ backend/
 │   ├── legacy_graph_ingestor.py     # Neo4j 업서트 헬퍼
 │   ├── embedding_text.py            # Late chunking + Weaviate 텍스트 인덱싱
 │   ├── embedding_image.py           # 이미지 임베딩 + Weaviate 이미지 인덱싱
+│   ├── image_processor.py           # 이미지 처리 유틸리티
 │   ├── shared_embedding.py          # SGLang 임베딩/리랭커 클라이언트 (싱글톤)
+│   ├── sglang_server_manager.py     # SGLang 서버 생명주기 관리자
 │   ├── generator.py                 # LLM 답변 생성
 │   ├── refiner.py                   # 답변 정제
 │   ├── evaluator.py                 # 답변 품질 평가
@@ -183,9 +197,11 @@ backend/
 │   ├── ocr_vision_manager.py        # [Excluded] OCR 엔진 관리
 │   └── rag_service.py               # [Excluded] RAG 서비스 오케스트레이션
 │
-└── utils/                           # [Excluded] 
+└── utils/
     ├── task_queue.py                # [Excluded] GPU 작업 큐 (비동기 작업 관리)
-    └── helpers.py                   # [Excluded] 공유 유틸리티 함수
+    ├── helpers.py                   # [Excluded] 공유 유틸리티 함수
+    ├── path_helpers.py              # [Excluded] 경로 계산 헬퍼
+    └── file_utils.py                # [Excluded] 파일 작업 유틸리티
 ```
 
 ---
@@ -209,15 +225,21 @@ backend/
 ## 쿼리 처리 흐름
 
 1. `POST /v1/chat` → `rag_pipeline.retrieve()` 호출.
-2. `hop_classifier.py`가 쿼리 복잡도를 추정 → `max_hops` 결정.
+2. **홉 분류 (LLM + Heuristic)**:
+   - LLM 기반 분류기(SGLang 사용)가 쿼리 복잡도(1–6 홉)를 추정합니다.
+   - 휴리스틱 fallback은 키워드 패턴과 쿼리 구조 분석을 사용합니다.
+   - 결과가 초기 검색 경로 선택을 결정합니다.
 3. `graph_reasoner.py`가 LangGraph 워크플로우 실행:
-   - **planner** → **router** → **검색 노드** (Path 1/2/3) → **quality_gate**
-   - 품질 < 임계값이면 → 대체 경로로 라우터에 **백트래킹** (최대 2회 재시도).
+   - **planner** → 쿼리 분석, LLM+Heuristic 분류 기반으로 `max_hops` 설정.
+   - **router** → 홉 수 기반으로 초기 경로(Vector/Cross-Ref/GraphDB) 선택.
+   - **검색 노드** (Path 1/2/3) → 선택된 검색 전략 실행.
+   - **quality_gate** → 관찰자 LLM이 결과 점수화 (0.0–1.0).
+   - quality < threshold이면 → **지능형 백트래킹**: `_select_best_path()`가 쿼리 키워드와 홉 수 기반으로 남은 경로를 평가하여 가장 적합한 대안 선택 (최대 MAX_BACKTRACK 재시도).
    - GoT 활성화 시 → 스냅샷 기반 백트래킹이 적용된 **thought_expander**.
    - **aggregator**가 컨텍스트 스니펫을 구성합니다.
 4. `generator.py`가 원본 쿼리 + 컨텍스트 스니펫으로 답변을 생성합니다.
 5. (선택) `refiner.py`가 답변을 다듬고; `evaluator.py`가 품질 노트를 기록합니다.
-6. 응답에는 디버깅을 위한 `plan`, `hops`, `notes`, `context_snippets`, `backtrack_count`, `thought_steps`가 포함됩니다.
+6. 응답에는 디버깅을 위한 `plan`, `hops`, `notes`, `context_snippets`, `backtrack_count`, `tried_paths`, `thought_steps`가 포함됩니다.
 
 ---
 
@@ -304,9 +326,7 @@ docker run -d --name neo4j-dev \
 
 ## 기여 & 연락처
 
-이슈(Issue)와 PR(Pull Request)은 언제나 환영합니다! 질문이나 제안, 기타 문의 사항이 있으시다면 편하게 연락해 주세요:
-* **GitHub:** 이슈 등록
-* **이메일:** [koto144@gmail.com](mailto:koto144@gmail.com)
+이슈와 PR을 환영합니다. 문의 사항은 koto144@gmail.com으로 연락해 주세요.
 
 ---
 

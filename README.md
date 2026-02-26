@@ -37,7 +37,6 @@ LangGraph-Agentic-Graph RAG is a vector–graph hybrid RAG platform powered by *
   - **Chunk retry logic**: LLM metadata extraction auto-retries failed chunks with server restart (configurable via `GRAPH_EXTRACTOR_RETRY_ON_FAILURE`)
 - **Automatic graph upsert**: OCR → LLM entity/event/relation extraction → simultaneous Weaviate + Neo4j ingestion.
 - **Async job monitoring**: upload, OCR, and embedding progress tracked through task APIs.
-
 ---
 
 ## Architecture
@@ -96,29 +95,38 @@ Handled by `LangGraphUploadPipeline` (`langgraph_upload_pipeline.py`) with `Memo
 1. **Conversion & Layout**: `run_file_processor.py` handles PDF/Office/image/audio inputs → `Results/1.Converted_images` + `Results/2.LayoutDetection`.
 2. **OCR & Markdown**: `run_ocr_processing()` with SGLang-powered OCRFlux produces per-page Markdown → `Results/4.OCR_results`.
 3. **LLM Metadata Extraction**: `LLMMetadataExtractor` extracts entities/events/relations from Markdown → `Results/8.graph_metadata/*.graph.json`.
-   - **Chunk size**: configurable via `GRAPH_EXTRACTOR_CHUNK_SIZE`
-   - **Timeout**: configurable via `GRAPH_EXTRACTOR_API_TIMEOUT`
+   - **Chunk size**: configurable via `GRAPH_EXTRACTOR_CHUNK_SIZE
+   - **Timeout**: configurable via `GRAPH_EXTRACTOR_API_TIMEOUT
    - **Retry logic**: On timeout, SGLang generator server restarts and retries the same chunk once
    - **Keepalive**: Background thread touches server every 20s during processing
 4. **Graph Upsert**:
    - `GraphSchemaManager` ensures Weaviate GraphEntity/GraphEvent/GraphRelation collections exist with cross-references (source/target/event)
    - `LegacyGraphIngestor` / `Neo4jManager` MERGEs nodes/relationships into Neo4j with deterministic UUIDs
-5. **Late Chunking & Embedding**: `embedding_text.py` splits Markdown into chunks and uploads into the Weaviate TextDocument collection via `SharedEmbeddingModel`.
+5. **Late Chunking & Embedding**: `embedding_text.py` splits Markdown into chunks and uploads into the Weaviate TextDocument collection via `SharedEmbeddingModel` (Qwen3-Embedding-4B).
 
 ---
 
 ## Query / Reasoning Layer
 
-Handled by `GraphReasoner` (`graph_reasoner.py`) with `MemorySaver` checkpointing and quality-gate backtracking:
+Handled by `GraphReasoner` (`graph_reasoner.py`) with `MemorySaver` checkpointing and intelligent backtracking:
 
-1. **Hop Classifier** (`hop_classifier.py`): estimates query complexity (hop count) to determine retrieval path.
-2. **Planner**: analyzes the query, sets `max_hops`, and initializes the search plan.
-3. **Router**: selects Path 1/2/3 based on hop classification.
+1. **Hop Classifier (LLM + Heuristic Hybrid)**: 
+   - **Primary**: LLM-based classifier estimates query complexity (1–6 hops) via SGLang server.
+   - **Fallback**: Heuristic scoring based on keywords, arrow count, and concept separators.
+   - The estimated hop count determines the initial retrieval path.
+2. **Planner**: analyzes the query, sets `max_hops` dynamically based on LLM+Heuristic classification, and initializes the search plan.
+3. **Router**: selects Path 1/2/3 based on hop classification and query characteristics.
+   - **Initial routing**: hop ≤ 2 → Path 1 (Vector), 3–5 → Path 2 (Cross-Ref), ≥ 6 → Path 3 (GraphDB).
+   - **Backtracking routing**: evaluates remaining untried paths using `_select_best_path()`, which scores each path based on query keywords and hop count to select the most suitable alternative.
 4. **Retrieval Nodes**:
    - **Path 1 – Vector RAG**: `rag_pipeline`'s TextSearcher + Reranker.
    - **Path 2 – Cross-Ref GraphRAG**: BM25 seed entities → Weaviate Cross-Reference `QueryReference` multi-hop traversal (source/target/event refs) to collect query-adjacent entities/events within Weaviate before escalating to Neo4j.
    - **Path 3 – Neo4j GraphDB**: deep traversal via `legacy_graph_client.py` Cypher templates for ≥ 6-hop schema-intensive reasoning or when Weaviate cross-references exhaust.
-5. **Quality Gate + Observer LLM**: every path result is scored 0.0–1.0 by the observer LLM (Path 1 defaults to 1.0 when delegated). If the score falls below the configured quality threshold, the workflow re-enters the router with the next retrieval path in the fallback order (Vector → Cross-Ref → GraphDB) and repeats until either a path passes or the 2-retry limit is reached; after the limit it continues with the best-effort context and flags the degradation in `answer_notes`.
+5. **Quality Gate + Observer LLM**: every path result is scored 0.0–1.0 by the observer LLM (Path 1 defaults to 1.0 when delegated). 
+   - **Pass condition**: quality ≥ threshold → proceeds to next stage.
+   - **Backtracking**: quality < threshold → `_select_best_path()` evaluates remaining paths based on query characteristics (keywords, hop count) and selects the most suitable alternative path.
+   - **Termination**: after all paths are exhausted or MAX_BACKTRACK limit is reached, continues with best-effort context and flags degradation in `answer_notes`.
+   - **Path tracking**: `tried_paths` state field prevents re-trying the same path.
 6. **GoT Thought Expander** (`GOT_MODE_ENABLED=true`): graph-shaped thought exploration with branching, scoring, and merging.
    - Each step fans out up to `GOT_BRANCH_FACTOR` candidate queries in parallel.
    - An observer LLM scores each branch (0.0–1.0) for relevance, coverage, and novelty.
@@ -135,10 +143,10 @@ Handled by `GraphReasoner` (`graph_reasoner.py`) with `MemorySaver` checkpointin
 ```
 backend/
 ├── main.py                          # [Excluded] FastAPI server entry point
-├── app.py                           # [Excluded] Application setup & middleware
 ├── config.py                        # [Excluded] Server-level configuration
+├── logging_config.py                # [Excluded] Logging configuration
 │
-├── api/                             # [Excluded] API layer
+├── api/                             # API layer
 │   ├── routes.py                    # [Excluded] Main upload/file/session routes
 │   ├── chat.py                      # [Excluded] POST /v1/chat endpoint
 │   ├── ocr_routes.py                # [Excluded] OCR processing endpoints
@@ -154,7 +162,9 @@ backend/
 │   ├── legacy_graph_ingestor.py     # Neo4j upsert helper
 │   ├── embedding_text.py            # Late chunking + Weaviate text indexing
 │   ├── embedding_image.py           # Image embedding + Weaviate image indexing
+│   ├── image_processor.py           # Image processing utilities
 │   ├── shared_embedding.py          # SGLang embedding/reranker client (singleton)
+│   ├── sglang_server_manager.py     # SGLang server lifecycle manager
 │   ├── generator.py                 # LLM answer generation
 │   ├── refiner.py                   # Answer refinement
 │   ├── evaluator.py                 # Answer quality evaluation
@@ -183,9 +193,11 @@ backend/
 │   ├── ocr_vision_manager.py        # [Excluded] OCR engine management
 │   └── rag_service.py               # [Excluded] RAG service orchestration
 │
-└── utils/                           # [Excluded] Shared utilities and helpers
+└── utils/
     ├── task_queue.py                # [Excluded] GPU task queue (async job management)
-    └── helpers.py                   # [Excluded] Shared utility functions
+    ├── helpers.py                   # [Excluded] Shared utility functions
+    ├── path_helpers.py              # [Excluded] Path calculation helpers
+    └── file_utils.py                # [Excluded] File operation utilities
 ```
 
 ---
@@ -209,15 +221,21 @@ backend/
 ## Query Processing Flow
 
 1. `POST /v1/chat` → `rag_pipeline.retrieve()` is invoked.
-2. `hop_classifier.py` estimates query complexity → determines `max_hops`.
+2. **Hop Classification (LLM + Heuristic)**:
+   - LLM-based classifier (via SGLang) estimates query complexity (1–6 hops).
+   - Heuristic fallback uses keyword patterns and query structure analysis.
+   - Result determines initial retrieval path selection.
 3. `graph_reasoner.py` runs the LangGraph workflow:
-   - **planner** → **router** → **retrieval node** (Path 1/2/3) → **quality_gate**
-   - If quality < threshold → **backtrack** to router with alternative path (max 2 retries).
+   - **planner** → analyzes query, sets `max_hops` based on LLM+Heuristic classification.
+   - **router** → selects initial path (Vector/Cross-Ref/GraphDB) based on hop count.
+   - **retrieval node** (Path 1/2/3) → executes selected retrieval strategy.
+   - **quality_gate** → Observer LLM scores result (0.0–1.0).
+   - If quality < threshold → **intelligent backtracking**: `_select_best_path()` evaluates remaining paths based on query keywords and hop count, selects the most suitable alternative (max MAX_BACKTRACK retries).
    - If GoT enabled → **thought_expander** with snapshot-based backtracking.
    - **aggregator** builds context snippets.
 4. `generator.py` produces the answer from original query + context snippets.
 5. (Optional) `refiner.py` polishes the answer; `evaluator.py` logs quality notes.
-6. Response includes `plan`, `hops`, `notes`, `context_snippets`, `backtrack_count`, and `thought_steps` for debugging.
+6. Response includes `plan`, `hops`, `notes`, `context_snippets`, `backtrack_count`, `tried_paths`, and `thought_steps` for debugging.
 
 ---
 
@@ -324,9 +342,7 @@ docker run -d --name neo4j-dev \
 
 ## Contribution & Contact
 
-Issues and PRs are always welcome! If you have any questions, suggestions, or concerns, feel free to contact me:
-* **GitHub:** Open an issue
-* **Email:** [koto144@gmail.com](mailto:koto144@gmail.com)
+Issues and PRs are welcome. For questions or concerns, please open an issue on GitHub or email us at **koto144@gmail.com**.
 
 ---
 

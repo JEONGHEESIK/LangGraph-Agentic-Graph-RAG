@@ -110,16 +110,25 @@ planner →  router →┬→ vector_retriever  ──→┐
 
 ## 查询 / 推理层
 
-由 `GraphReasoner`（`graph_reasoner.py`）配合 `MemorySaver` 检查点和质量门控回溯处理：
+由 `GraphReasoner`（`graph_reasoner.py`）配合 `MemorySaver` 检查点和智能回溯处理：
 
-1. **跳数分类器**（`hop_classifier.py`）：估计查询复杂度（跳数）以确定检索路径。
-2. **规划器**：分析查询，设置 `max_hops`，并初始化搜索计划。
-3. **路由器**：根据跳数分类选择路径 1/2/3。
+1. **跳数分类器（LLM + 启发式混合）**：
+   - **主要方式**：基于 LLM 的分类器通过 SGLang 服务器估计查询复杂度（1–6 跳）。
+   - **备用方式**：基于关键词、箭头数量和概念分隔符的启发式评分。
+   - 估计的跳数决定初始检索路径。
+2. **规划器**：分析查询，基于 LLM+启发式分类动态设置 `max_hops`，并初始化搜索计划。
+3. **路由器**：根据跳数分类和查询特征选择路径 1/2/3。
+   - **初始路由**：跳数 ≤ 2 → 路径 1（Vector），3–5 → 路径 2（Cross-Ref），≥ 6 → 路径 3（GraphDB）。
+   - **回溯路由**：使用 `_select_best_path()` 评估剩余未尝试的路径，根据查询关键词和跳数对每条路径评分，选择最合适的替代方案。
 4. **检索节点**：
-   - **路径 1 – Vector RAG**：委托给 `rag_pipeline` 现有的 TextSearcher + Reranker。
+   - **路径 1 – Vector RAG**：委托给 `rag_pipeline` 现有的 TextSearcher + Reranker（quality=1.0）。
    - **路径 2 – Cross-Ref GraphRAG**：BM25 种子实体 → Weaviate Cross-Reference `QueryReference` 多跳遍历（source/target/event refs），在升级到 Neo4j 之前先在 Weaviate 内收集与查询相邻的实体/事件。
    - **路径 3 – Neo4j GraphDB**：通过 `legacy_graph_client.py` Cypher 模板执行 ≥ 6 跳的模式化深度推理，或在 Weaviate cross-reference 结果枯竭后继续深化。
-5. **质量门控 + 观察者 LLM**：每条路径结果由观察者 LLM 评分为 0.0–1.0（路径 1 委托时默认为 1.0）。如果评分低于配置的质量阈值，工作流会返回路由器并按照回退顺序（Vector → Cross-Ref → GraphDB）尝试下一条检索路径，直到有路径通过或达到 2 次重试上限；一旦达到上限，将携带当前上下文继续，并在 `answer_notes` 中标记退化。
+5. **质量门控 + 观察者 LLM**：每条路径结果由观察者 LLM 评分为 0.0–1.0（路径 1 委托时默认为 1.0）。
+   - **通过条件**：quality ≥ threshold → 进入下一阶段。
+   - **回溯**：quality < threshold → `_select_best_path()` 基于查询特征（关键词、跳数）评估剩余路径，选择最合适的替代路径。
+   - **终止**：所有路径耗尽或达到 MAX_BACKTRACK 上限后，携带当前上下文继续，并在 `answer_notes` 中标记退化。
+   - **路径跟踪**：`tried_paths` 状态字段防止重复尝试同一路径。
 6. **GoT 思维扩展器**（`GOT_MODE_ENABLED=true`）：通过分支、评分和合并进行图形化思维探索。
    - 每步并行扩展最多 `GOT_BRANCH_FACTOR` 个候选查询。
    - 观察者 LLM 从相关性、覆盖率和新颖性维度对每个分支评分（0.0–1.0）。
@@ -136,10 +145,10 @@ planner →  router →┬→ vector_retriever  ──→┐
 ```
 backend/
 ├── main.py                          # [Excluded] FastAPI 服务器入口点
-├── app.py                           # [Excluded] 应用设置与中间件
 ├── config.py                        # [Excluded] 服务器级配置
+├── logging_config.py                # [Excluded] 日志配置
 │
-├── api/                             # [Excluded] API 层
+├── api/                             # API 层
 │   ├── routes.py                    # [Excluded] 主要上传/文件/会话路由
 │   ├── chat.py                      # [Excluded] POST /v1/chat 端点
 │   ├── ocr_routes.py                # [Excluded] OCR 处理端点
@@ -155,7 +164,9 @@ backend/
 │   ├── legacy_graph_ingestor.py     # Neo4j 更新插入助手
 │   ├── embedding_text.py            # 延迟分块 + Weaviate 文本索引
 │   ├── embedding_image.py           # 图像嵌入 + Weaviate 图像索引
+│   ├── image_processor.py           # 图像处理工具
 │   ├── shared_embedding.py          # SGLang 嵌入/重排序客户端（单例）
+│   ├── sglang_server_manager.py     # SGLang 服务器生命周期管理器
 │   ├── generator.py                 # LLM 答案生成
 │   ├── refiner.py                   # 答案精炼
 │   ├── evaluator.py                 # 答案质量评估
@@ -184,9 +195,11 @@ backend/
 │   ├── ocr_vision_manager.py        # [Excluded] OCR 引擎管理
 │   └── rag_service.py               # [Excluded] RAG 服务编排
 │
-└── utils/                           # [Excluded] 
+└── utils/
     ├── task_queue.py                # [Excluded] GPU 任务队列（异步任务管理）
-    └── helpers.py                   # [Excluded] 共享工具函数
+    ├── helpers.py                   # [Excluded] 共享工具函数
+    ├── path_helpers.py              # [Excluded] 路径计算助手
+    └── file_utils.py                # [Excluded] 文件操作工具
 ```
 
 ---
@@ -210,15 +223,21 @@ backend/
 ## 查询处理流程
 
 1. `POST /v1/chat` → 调用 `rag_pipeline.retrieve()`。
-2. `hop_classifier.py` 估计查询复杂度 → 确定 `max_hops`。
+2. **跳数分类（LLM + 启发式）**：
+   - 基于 LLM 的分类器（通过 SGLang）估计查询复杂度（1–6 跳）。
+   - 启发式备用方案使用关键词模式和查询结构分析。
+   - 结果决定初始检索路径选择。
 3. `graph_reasoner.py` 运行 LangGraph 工作流：
-   - **planner** → **router** → **检索节点**（路径 1/2/3）→ **quality_gate**
-   - 如果质量 < 阈值 → **回溯**到路由器选择备用路径（最多重试 2 次）。
+   - **planner** → 分析查询，基于 LLM+启发式分类设置 `max_hops`。
+   - **router** → 根据跳数选择初始路径（Vector/Cross-Ref/GraphDB）。
+   - **检索节点**（路径 1/2/3）→ 执行选定的检索策略。
+   - **quality_gate** → 观察者 LLM 对结果评分（0.0–1.0）。
+   - 如果 quality < threshold → **智能回溯**：`_select_best_path()` 基于查询关键词和跳数评估剩余路径，选择最合适的替代方案（最多 MAX_BACKTRACK 次重试）。
    - 如果启用 GoT → 带有基于快照回溯的 **thought_expander**。
    - **aggregator** 构建上下文片段。
 4. `generator.py` 从原始查询 + 上下文片段生成答案。
 5. （可选）`refiner.py` 润色答案；`evaluator.py` 记录质量说明。
-6. 响应包含用于调试的 `plan`、`hops`、`notes`、`context_snippets`、`backtrack_count` 和 `thought_steps`。
+6. 响应包含用于调试的 `plan`、`hops`、`notes`、`context_snippets`、`backtrack_count`、`tried_paths` 和 `thought_steps`。
 
 ---
 
@@ -305,9 +324,7 @@ docker run -d --name neo4j-dev \
 
 ## 贡献与联系
 
-随时欢迎提交 Issue 和 PR！如果您有任何问题、建议或反馈，请随时通过以下方式与我联系：
-* **GitHub:** 提交 Issue
-* **电子邮件:** [koto144@gmail.com](mailto:koto144@gmail.com)
+欢迎提交 Issue 和 PR。如有问题，请联系 koto144@gmail.com。
 
 ---
 
@@ -374,4 +391,3 @@ docker run -d --name neo4j-dev \
   url={https://huggingface.co/ChatDOC/OCRFlux-3B}
 }
 ```
-
