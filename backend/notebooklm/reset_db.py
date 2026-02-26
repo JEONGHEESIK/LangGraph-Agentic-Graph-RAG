@@ -1,20 +1,22 @@
 import weaviate
 import logging
 
-logging.basicConfig(level=logging.INFO)
+from logging_config import configure_logging
+
+configure_logging()
 logger = logging.getLogger(__name__)
 
 # 설정
-WEAVIATE_HOST = "localhost"
+WEAVIATE_HOST = "SERVER ADRESS"
 
 # 1. v4 클라이언트 연결 (필수 인자 추가)
 client = weaviate.connect_to_custom(
     http_host=WEAVIATE_HOST,
     http_port=8080,
-    http_secure=False,      # 👈 추가
+    http_secure=False,      # 추가
     grpc_host=WEAVIATE_HOST,
     grpc_port=50051,
-    grpc_secure=False       # 👈 추가
+    grpc_secure=False       # 추가
 )
 
 try:

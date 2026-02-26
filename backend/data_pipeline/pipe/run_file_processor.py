@@ -9,17 +9,23 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# 파서 모듈 상대 경로 우선 추가
-_PIPE_DIR = Path(__file__).parent
-if str(_PIPE_DIR) not in sys.path:
-    sys.path.insert(0, str(_PIPE_DIR))
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
-from parser import convert_to_pdf, is_office_file, SUPPORTED_OFFICE_EXTENSIONS
+from backend.data_pipeline.pipe.bootstrap import ensure_backend_root
+from backend.data_pipeline.pipe.parser import (
+    convert_to_pdf,
+    is_office_file,
+    SUPPORTED_OFFICE_EXTENSIONS,
+)
+
+ensure_backend_root()
 
 load_dotenv()
 
 # 디렉토리 설정
-# LAYOUT_DIR = "/path/to/conda/env/image_test/data_pipeline/Results/2.LayoutDetection"
+# LAYOUT_DIR = "/home/nextits2/.conda/envs/workbox/image_test/data_pipeline/Results/2.LayoutDetection"
 CONVERTED = os.getenv("CONVERTED")
 
 

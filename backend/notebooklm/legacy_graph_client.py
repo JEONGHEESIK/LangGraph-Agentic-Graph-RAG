@@ -27,7 +27,7 @@ class Neo4jGraphClient:
                 "neo4j 드라이버를 찾을 수 없습니다. 'pip install neo4j'로 설치하세요."
             ) from _import_error
 
-        self.uri = getattr(config, "NEO4J_URI", "bolt://localhost:7687")
+        self.uri = getattr(config, "NEO4J_URI", "bolt://SERVER ADRESS:7687")
         user = getattr(config, "NEO4J_USER", "")
         password = getattr(config, "NEO4J_PASSWORD", "")
         auth = (user, password) if user else None

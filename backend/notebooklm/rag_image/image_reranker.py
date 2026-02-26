@@ -1,6 +1,6 @@
 """
 RAG 시스템을 위한 이미지 리랭커 모듈
-SGLang /v1/rerank API + reranker-model 프롬프트 포맷으로 검색 결과를 재정렬합니다.
+SGLang /v1/rerank API + Generic Model-Reranker 프롬프트 포맷으로 검색 결과를 재정렬합니다.
 """
 import os
 import logging
@@ -10,27 +10,19 @@ import threading
 import requests
 from typing import List, Dict, Any, Optional, Union
 
-# 상위 디렉토리를 모듈 경로에 추가
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
+from notebooklm.config import RAGConfig
 
-from config import RAGConfig
-
-# 로깅 설정 - 기본 레벨은 INFO로 설정 (디버깅을 위해 WARNING에서 변경)
-# 이미 다른 모듈에서 basicConfig가 호출되었을 수 있으므로 여기서는 설정하지 않음
+# 로깅 설정 - main.py에서 configure_logging()이 이미 호출됨
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)  # 디버깅을 위해 INFO 레벨로 변경
 
-# reranker-model 프롬프트 포맷 상수
+# Generic Model-Reranker 프롬프트 포맷 상수
 _QUERY_PREFIX = '<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n<|im_start|>user\n'
 _DOC_SUFFIX = '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n'
 _INSTRUCTION = 'Given a web search query, retrieve relevant passages that answer the query.\n'
 
 
 class RAGReranker:
-    """SGLang /v1/rerank API + reranker-model 프롬프트 포맷 기반 이미지 리랭커."""
+    """SGLang /v1/rerank API + Generic Model-Reranker 프롬프트 포맷 기반 이미지 리랭커."""
     _ready = False
     _lock = threading.Lock()
 
@@ -157,7 +149,7 @@ class RAGReranker:
             raise InterruptedError("Image reranking operation cancelled")
 
         try:
-            # reranker-model 프롬프트 포맷 적용
+            # Generic Model-Reranker 프롬프트 포맷 적용
             formatted_query = f"{_QUERY_PREFIX}<Instruct>: {_INSTRUCTION}<Query>: {query}\n"
             formatted_docs = [f"<Document>: {doc} {_DOC_SUFFIX}" for doc in passages]
 

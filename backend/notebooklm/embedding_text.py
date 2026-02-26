@@ -19,13 +19,11 @@ import hashlib
 import uuid
 
 # 💡 Sentence Transformers와 Weaviate 클라이언트 임포트
-from shared_embedding import shared_embedding
+from notebooklm.shared_embedding import shared_embedding
 import weaviate
 from weaviate.util import generate_uuid5
 from weaviate.exceptions import UnexpectedStatusCodeException
 
-# 로깅 설정
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -35,7 +33,7 @@ logger = logging.getLogger(__name__)
 class RAGConfig:
     """Weaviate 연결 및 클래스 이름 설정"""
     def __init__(self):
-        self.WEAVIATE_URL = "http://localhost:8080"
+        self.WEAVIATE_URL = "http://SERVER ADRESS:8080"
         self.WEAVIATE_TEXT_CLASS = "TextDocument"
         # 💡 참고: 이 파일에서 WEAVIATE_DOCUMENT_CLASS는 사용되지 않으므로 제거해도 무방합니다.
 
@@ -277,10 +275,10 @@ class WeaviateVectorStore:
         )
 
 # =============================================================================
-# your-modelLateChunker 클래스
+# Generic ModelLateChunker 클래스
 # =============================================================================
 
-class your-modelLateChunker:
+class GenericModelLateChunker:
     def __init__(self, chunk_size=1000, overlap_size=100, session_id: Optional[str] = None):
         self.chunk_size = chunk_size
         self.overlap_size = overlap_size
@@ -455,8 +453,8 @@ def search_vectors(query: str, top_k: int = 5) -> List[Dict]:
 
 def process_markdown_files(client, file_paths: List[str], session_id: Optional[str] = None):
     """여러 마운트다운 파일을 인덱싱합니다."""
-    chunker = your-modelLateChunker(session_id=session_id)
-    # 기존 코드에서 your-modelLateChunker가 사용하는 client는 내부적으로 생성하므로 
+    chunker = GenericModelLateChunker(session_id=session_id)
+    # 기존 코드에서 GenericModelLateChunker가 사용하는 client는 내부적으로 생성하므로 
     # client 인자를 넘기지 않고 chunker 내부의 vector_store.client를 사용하거나 
     # 필요시 chunker 구조를 개선해야 하지만, 현재 구조 유지를 위해 세션 ID만 전달합니다.
     for file_path in file_paths:
@@ -476,7 +474,7 @@ def main(input_file=None, recreate_schema=False, search_mode=False, session_id=N
     """
     # 명령줄에서 실행될 때만 argparse 사용
     if input_file is None and not recreate_schema and not search_mode:
-        parser = argparse.ArgumentParser(description="your-model Late Chunking and Weaviate Indexing")
+        parser = argparse.ArgumentParser(description="Late Chunking and Weaviate Indexing")
         parser.add_argument('--input-file', type=str, help='Input markdown file path for processing.')
         parser.add_argument('--recreate-schema', action='store_true', help='Recreate Weaviate schema.')
         parser.add_argument('--search', action='store_true', help='Interactive search mode.')
@@ -495,10 +493,10 @@ def main(input_file=None, recreate_schema=False, search_mode=False, session_id=N
 
     # [수정] config.py에서 RAGConfig를 가져오도록 수정
     try:
-        from config import RAGConfig
+        from notebooklm.config import RAGConfig
         logger.info("config.py에서 RAGConfig 로드 성공.")
     except ImportError:
-        logger.error("config.py를 찾을 수 없습니다. model3_late_chunking.py의 로컬 RAGConfig를 사용합니다.")
+        logger.error("config.py를 찾을 수 없습니다. RAGConfig를 사용합니다.")
         # config.py가 없으면 이 파일의 로컬 RAGConfig를 사용 (기존 방식)
         pass
 
@@ -513,7 +511,7 @@ def main(input_file=None, recreate_schema=False, search_mode=False, session_id=N
             # weaviate_utils.py에 정의된 (recreate=True를 지원하는) 
             # create_schema 함수를 임포트하여 강제 재생성
             try:
-                from weaviate_utils import create_schema as create_utils_schema
+                from notebooklm.weaviate_utils import create_schema as create_utils_schema
                 
                 # recreate=True로 호출하여 delete_all() 실행
                 success = create_utils_schema(client, recreate=True) 
@@ -565,7 +563,7 @@ def main(input_file=None, recreate_schema=False, search_mode=False, session_id=N
         else:
             logger.warning("Weaviate client not ready. Indexing will fail.")
         
-        chunker = your-modelLateChunker() 
+        chunker = GenericModelLateChunker() 
         document_id = chunker.process_markdown_file(args.input_file)
         summary = chunker.get_document_summary(document_id)
         print("\nDocument Summary:")

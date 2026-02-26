@@ -42,11 +42,9 @@ def _load_models(device):
     except Exception as exc:  # torch.compile 미지원 환경 대응
         print(f"torch.compile failed: {exc}. Running without compilation.")
 
-    import os
-    hf_token = os.getenv("HF_TOKEN", "")
     _diarization_pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        token=hf_token,
+        token="hf_token",
     ).to(torch.device(device))
 
     print("STT 모델 LazyLoading 완료")

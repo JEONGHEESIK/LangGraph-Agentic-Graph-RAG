@@ -220,7 +220,7 @@ class LangGraphUploadPipeline:
         if saved_paths:
             try:
                 print(f"DEBUG: Neo4j 주입 시도 (파일 수: {len(saved_paths)})...")
-                # graph_manager의 Neo4j 접속 정보가 localhost와 일치하는지 확인 필수
+                # graph_manager의 Neo4j 접속 정보가 SERVER ADRESS와 일치하는지 확인 필수
                 self.graph_manager.ingest_metadata_dir(
                     self.metadata_extractor.output_dir,
                     doc_uuid_map=doc_uuid_map

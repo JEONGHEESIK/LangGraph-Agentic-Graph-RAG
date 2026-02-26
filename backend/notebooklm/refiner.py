@@ -3,7 +3,7 @@
 
 """
 RAG 시스템 정제기 - 최종 답변을 사용자에게 적합하게 다듬습니다.
-your-model-1.7B 전용 모델 사용 (최적화됨)
+Generic Model-1.7B 전용 모델 사용 (최적화됨)
 """
 
 import os
@@ -25,9 +25,7 @@ def import_process_markdown_tables():
     rag_service.py에서 process_markdown_tables 함수를 동적으로 임포트
     """
     try:
-        # 현재 디렉토리에서 상대 경로로 임포트 시도
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../services'))
-        from rag_service import process_markdown_tables
+        from services.rag_service import process_markdown_tables
         return process_markdown_tables
     except ImportError:
         # 임포트 실패 시 로깅
@@ -179,7 +177,7 @@ class Refiner:
         return text
 
     def _extract_final_answer(self, text: str) -> str:
-        """your-model 출력에서 최종 답변만 추출 (thinking 태그 제거)"""
+        """Generic Model 출력에서 최종 답변만 추출 (thinking 태그 제거)"""
         if "<think>" in text and "</think>" in text:
             try:
                 # thinking 내용과 실제 답변 분리

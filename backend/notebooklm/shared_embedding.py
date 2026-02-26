@@ -9,12 +9,8 @@ import logging
 import requests
 import json
 
-# 현재 스크립트의 경로를 sys.path에 추가
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from config import RAGConfig
+from notebooklm.config import RAGConfig
 
-# 로깅 설정
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 from typing import Optional, List
@@ -35,10 +31,12 @@ class SharedEmbeddingModel:
             cls._instance = super(SharedEmbeddingModel, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, model_name="your-embedding-model"):
+    def __init__(self, model_name=None):
         if hasattr(self, "_initialized") and self._initialized:
             return
         config = RAGConfig()
+        if model_name is None:
+            model_name = getattr(config, 'EMBEDDING_MODEL', os.getenv('EMBEDDING_MODEL', 'your-embedding-model-name'))
         self.model_name = config.SGLANG_EMBEDDING_MODEL or model_name
         self.endpoint = config.SGLANG_EMBEDDING_ENDPOINT  # e.g. "http://localhost:30001"
         self._api_url = f"{self.endpoint}/v1/embeddings"

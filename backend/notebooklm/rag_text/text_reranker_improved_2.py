@@ -8,21 +8,19 @@ import requests
 from typing import List, Dict, Any, Optional
 import time
 
-# config.py 파일이 있는 디렉토리를 sys.path에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import RAGConfig
+from notebooklm.config import RAGConfig
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
 
-# reranker-model 프롬프트 포맷 상수
+# Generic Model-Reranker 프롬프트 포맷 상수
 _QUERY_PREFIX = '<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n<|im_start|>user\n'
 _DOC_SUFFIX = '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n'
 _INSTRUCTION = 'Given a web search query, retrieve relevant passages that answer the query.\n'
 
 
 class ImprovedTextReranker:
-    """SGLang /v1/rerank API + reranker-model 프롬프트 포맷 기반 텍스트 리랭커."""
+    """SGLang /v1/rerank API + Generic Model-Reranker 프롬프트 포맷 기반 텍스트 리랭커."""
     _ready = False
     _lock = threading.Lock()
 
@@ -112,7 +110,7 @@ class ImprovedTextReranker:
             raise InterruptedError("Reranking operation cancelled")
 
         try:
-            # reranker-model 프롬프트 포맷 적용
+            # Generic Model-Reranker 프롬프트 포맷 적용
             formatted_query = f"{_QUERY_PREFIX}<Instruct>: {_INSTRUCTION}<Query>: {query}\n"
             formatted_docs = [f"<Document>: {doc} {_DOC_SUFFIX}" for doc in passages]
 

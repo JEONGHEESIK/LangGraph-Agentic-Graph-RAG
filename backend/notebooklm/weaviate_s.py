@@ -3,7 +3,7 @@ import logging
 import datetime 
 
 # Weaviate 클라이언트 정보 (코드에서 사용한 정보와 동일)
-WEAVIATE_HOST = "localhost"
+WEAVIATE_HOST = "SERVER ADRESS"
 WEAVIATE_PORT = 8080
 TEXT_CLASS_NAME = "TextDocument"
 

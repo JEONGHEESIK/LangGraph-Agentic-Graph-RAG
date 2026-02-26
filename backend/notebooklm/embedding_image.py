@@ -1,8 +1,8 @@
-### 명령어 cd /path/to/conda/env
+### 명령어 cd /home/nextits2/.conda/envs/workbox
 ### python embedding_image.py --json data/combined_metadata_2.json --type image
 ### python embedding_image.py --json data/test_text_2.json --type text
 
-# python /path/to/project/backend/notebooklm/embedding_image.py --type image --recreate
+# python /home/jeonghs/workspace/nextitslm/backend/notebooklm/embedding_image.py --type image --recreate
 
 import os
 import re
@@ -22,19 +22,11 @@ from PIL import Image
 from tqdm import tqdm
 from shared_embedding import shared_embedding
 
-# config.py 파일이 있는 디렉토리를 sys.path에 추가
-import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from config import RAGConfig
-from weaviate_utils import create_schema, batch_import_text_documents
+from notebooklm.config import RAGConfig
+from notebooklm.weaviate_utils import create_schema, batch_import_text_documents
 
-# 로깅 설정
+# 로깅 설정 - main.py에서 configure_logging()이 이미 호출됨
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
 
 class VectorDBService:
     """
@@ -43,7 +35,7 @@ class VectorDBService:
     임베딩 생성 및 벡터 DB 저장/검색 기능을 제공합니다.
     """
     def __init__(self, 
-                 model_name="your-embedding-model",
+                 model_name=None,
                  device=None,
                  vector_dimension=2560,
                  recreate_schema=False,
@@ -837,7 +829,7 @@ if __name__ == "__main__":
     # 명령행 인수 처리
     parser = argparse.ArgumentParser(description="이미지 및 텍스트 데이터 임베딩 및 Weaviate 저장 시스템")
     parser.add_argument("--json", "-j", help="처리할 JSON 파일 경로 또는 디렉토리")
-    parser.add_argument("--model", "-m", default="your-embedding-model", help="사용할 임베딩 모델 이름")
+    parser.add_argument("--model", "-m", default=None, help="사용할 임베딩 모델 이름 (기본값: config.EMBEDDING_MODEL)")
     parser.add_argument("--recreate", action="store_true", help="기존 Weaviate 스키마를 삭제하고 새로 생성합니다.")
     parser.add_argument("--type", "-t", choices=["image", "text"], default="image", help="처리할 데이터 유형 (image 또는 text)")
     parser.add_argument("--delete-type", "-dt", choices=["image", "text"], help="삭제할 스키마의 데이터 유형 (image 또는 text)")
@@ -888,4 +880,4 @@ if __name__ == "__main__":
         print("  # 이미지 메타데이터 JSON 파일 처리 (기존 스키마에 추가)")
         print("  python embedding_image.py --json /path/to/image_metadata.json --type image")
         print("\n  # 디렉토리 내의 모든 JSON/TXT 파일 재귀적으로 처리 (스키마 재생성)")
-        print("  python embedding_image.py --json /path/to/project/backend/data_pipeline/Results/5.Completion_results/image --recreate")
+        print("  python embedding_image.py --json /home/jeonghs/workspace/nextitslm/backend/data_pipeline/Results/5.Completion_results/image --recreate")

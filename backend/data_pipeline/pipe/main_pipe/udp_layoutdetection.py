@@ -16,8 +16,8 @@ from PIL import Image
 from tqdm import tqdm
 
 # Ollama API 설정
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "your-vision-model"
+OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api/generate")
+MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "your-ollama-model-name")  # e.g., your-ollama-model-name
 
 # 레이아웃 감지 모델 초기화
 def initialize_model():

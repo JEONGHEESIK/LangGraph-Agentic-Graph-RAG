@@ -20,7 +20,7 @@ try:
 except ImportError:
     logger.error("weaviate_utils: config.py를 찾을 수 없습니다. 임시 RAGConfig를 사용합니다.")
     class RAGConfig:
-        WEAVIATE_URL = "http://localhost:8080" # 기본값 설정
+        WEAVIATE_URL = "http://SERVER ADRESS:8080" # 기본값 설정
         WEAVIATE_TEXT_CLASS = "TextDocument"
         WEAVIATE_IMAGE_CLASS = "ImageDocument"
         WEAVIATE_VECTORIZER = "multi-modal-clip" # 기본값 설정
@@ -39,8 +39,8 @@ except ImportError:
 # .../backend/notebooklm/weaviate_utils.py -> .../backend/
 BASE_DIR = Path(__file__).resolve().parent.parent
 # .../backend/data_pipeline/
-DATA_PIPELINE_DIR = BASE_DIR / "data_pipeline"
-logger.info(f"weaviate_utils: DATA_PIPELINE_DIR 설정됨: {DATA_PIPELINE_DIR}")
+YourCompany_DATA_DIR = BASE_DIR / "data_pipeline"
+logger.info(f"weaviate_utils: YourCompany_DATA_DIR 설정됨: {YourCompany_DATA_DIR}")
 
 
 def create_schema(client, recreate: bool = False) -> bool:
@@ -367,13 +367,13 @@ def delete_document_by_filename(client: weaviate.Client, filename: str) -> bool:
         config = RAGConfig()
         base_name = Path(filename).stem
 
-        # [수정] config.DATA_PATH 대신 이 파일 상단에 정의된 DATA_PIPELINE_DIR 사용
+        # [수정] config.DATA_PATH 대신 이 파일 상단에 정의된 YourCompany_DATA_DIR 사용
         # (routes.py와 경로 기준을 동일하게 맞춤)
         metadata_candidates = list({
-            str((DATA_PIPELINE_DIR / "doc" / filename)),
-            str((DATA_PIPELINE_DIR / "doc" / f"{base_name}.md")),
-            str((DATA_PIPELINE_DIR / "Results" / "7.stt" / f"{base_name}.md")),
-            str((DATA_PIPELINE_DIR / "Results" / "4.OCR_results" / f"{base_name}.md")),
+            str((YourCompany_DATA_DIR / "doc" / filename)),
+            str((YourCompany_DATA_DIR / "doc" / f"{base_name}.md")),
+            str((YourCompany_DATA_DIR / "Results" / "7.stt" / f"{base_name}.md")),
+            str((YourCompany_DATA_DIR / "Results" / "4.OCR_results" / f"{base_name}.md")),
         })
         logger.debug(f"UUID 검색을 위한 후보 경로 목록: {metadata_candidates}") # <<< 로그 추가
 
@@ -458,9 +458,9 @@ def get_document_uuid_map_with_session(client: weaviate.Client, filenames: List[
         
         # 3. 글로벌 디렉토리에서도 검색 (fallback)
         global_candidates = [
-            str((DATA_PIPELINE_DIR / "doc" / filename)),
-            str((DATA_PIPELINE_DIR / "doc" / f"{base_name}.md")),
-            str((DATA_PIPELINE_DIR / "Results" / "4.OCR_results" / f"{base_name}.md")),
+            str((YourCompany_DATA_DIR / "doc" / filename)),
+            str((YourCompany_DATA_DIR / "doc" / f"{base_name}.md")),
+            str((YourCompany_DATA_DIR / "Results" / "4.OCR_results" / f"{base_name}.md")),
         ]
         metadata_candidates.extend(global_candidates)
         
@@ -490,12 +490,12 @@ def get_document_uuid_map(client: weaviate.Client, filenames: List[str]) -> Dict
     for filename in filenames:
         base_name = Path(filename).stem
 
-        # [수정] config.DATA_PATH 대신 이 파일 상단에 정의된 DATA_PIPELINE_DIR 사용
+        # [수정] config.DATA_PATH 대신 이 파일 상단에 정의된 YourCompany_DATA_DIR 사용
         metadata_candidates = list({
-            str((DATA_PIPELINE_DIR / "doc" / filename)),
-            str((DATA_PIPELINE_DIR / "doc" / f"{base_name}.md")),
-            str((DATA_PIPELINE_DIR / "Results" / "7.stt" / f"{base_name}.md")),
-            str((DATA_PIPELINE_DIR / "Results" / "4.OCR_results" / f"{base_name}.md")),
+            str((YourCompany_DATA_DIR / "doc" / filename)),
+            str((YourCompany_DATA_DIR / "doc" / f"{base_name}.md")),
+            str((YourCompany_DATA_DIR / "Results" / "7.stt" / f"{base_name}.md")),
+            str((YourCompany_DATA_DIR / "Results" / "4.OCR_results" / f"{base_name}.md")),
         })
         logger.debug(f"'{filename}'에 대한 UUID 검색 후보 경로: {metadata_candidates}") # <<< 로그 추가
 

@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Neo4jManager:
-    def __init__(self, uri="bolt://localhost:7687", auth=None):
+    def __init__(self, uri="bolt://SERVER ADRESS:7687", auth=None):
         self.driver = GraphDatabase.driver(uri, auth=auth)
 
     def close(self):

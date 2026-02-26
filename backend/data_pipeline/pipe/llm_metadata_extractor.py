@@ -11,6 +11,16 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from backend.data_pipeline.pipe.bootstrap import ensure_backend_root, configure_logging
+
+ensure_backend_root()
+configure_logging()
 
 import requests
 
@@ -19,7 +29,6 @@ try:
 except ImportError:
     RAGConfig = None
 
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 # 엔티티/관계 후처리용 상수
@@ -72,7 +81,7 @@ def _get_model_name(config, model_name: str = None) -> str:
         return model_name
     if config and hasattr(config, 'GRAPH_EXTRACTOR_MODEL'):
         return config.GRAPH_EXTRACTOR_MODEL
-    return 'your-llm-model'
+    return os.getenv('GRAPH_EXTRACTOR_MODEL', 'your-graph-extractor-model-name')
 
 def get_runtime(model_name: str, mem_fraction: float):
     """하위 호환성 유지 - SGLang 서버 엔드포인트를 반환합니다. 미기동 시 자동 기동."""
@@ -128,7 +137,7 @@ def process_document(
 
     # config에서 모델명/mem_fraction 가져오기 (하드코딩 제거)
     if not model_name:
-        model_name = getattr(config, 'GRAPH_EXTRACTOR_MODEL', 'your-llm-model') if config else 'your-llm-model'
+        model_name = getattr(config, 'GRAPH_EXTRACTOR_MODEL', os.getenv('GRAPH_EXTRACTOR_MODEL', 'your-graph-extractor-model-name')) if config else os.getenv('GRAPH_EXTRACTOR_MODEL', 'your-graph-extractor-model-name')
     mem_fraction = getattr(config, 'GRAPH_EXTRACTOR_MEM_FRACTION', 0.3) if config else 0.3
     endpoint = get_runtime(model_name, mem_fraction)
     content = md_path.read_text(encoding="utf-8")
@@ -388,8 +397,7 @@ class LLMMetadataExtractor:
         self.config = config or (RAGConfig() if RAGConfig else None)
         if self.config and not model_name and hasattr(self.config, "LLM_MODEL"):
             model_name = getattr(self.config, "LLM_MODEL")
-        # 모델명 오타 주의: your-llm-model가 맞는지 확인 필요 (보통 your-model.5-7B 등)
-        self.model_name = model_name or getattr(self.config, 'GRAPH_EXTRACTOR_MODEL', 'your-llm-model') if self.config else (model_name or 'your-llm-model')
+        self.model_name = model_name or getattr(self.config, 'GRAPH_EXTRACTOR_MODEL', os.getenv('GRAPH_EXTRACTOR_MODEL', 'your-graph-extractor-model-name')) if self.config else (model_name or os.getenv('GRAPH_EXTRACTOR_MODEL', 'your-graph-extractor-model-name'))
         self.output_dir = _resolve_output_dir(config=self.config, session_id=None)
 
     def _infer_session_id(self, md_path: Path) -> Optional[str]:

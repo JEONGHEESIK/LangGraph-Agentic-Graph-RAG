@@ -18,12 +18,16 @@ import numpy as np
 import traceback
 from glob import glob
 
-# 로깅 설정
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+import sys
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from backend.data_pipeline.pipe.bootstrap import ensure_backend_root, configure_logging
+
+ensure_backend_root()
+configure_logging()
 logger = logging.getLogger(__name__)
 
 # 대상 레이블 (이 레이블만 크롭)

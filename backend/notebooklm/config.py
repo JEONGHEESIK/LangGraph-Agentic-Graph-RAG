@@ -1,17 +1,20 @@
 import os
 import json
 import logging
+import sys
 try:
     import torch  # type: ignore
 except Exception:
     torch = None
 from pathlib import Path
 
+# backend 디렉토리를 sys.path에 추가하여 utils.* 모듈을 notebooklm에서 직접 실행할 때도 불러올 수 있도록 함
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
-# 로깅 설정
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# 특정 모듈의 로그 레벨 조정
+# 특정 모듈의 로그 레벨 조정은 main.py에서 configure_logging 호출 후 수행
+# 여기서는 로깅 설정을 호출하지 않음
 logging.getLogger('transformers').setLevel(logging.WARNING)
 logging.getLogger('PIL').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
@@ -49,9 +52,9 @@ class RAGConfig:
         #############################################
         # 1. 경로 및 파일 설정
         #############################################
-        current_file = Path(__file__).resolve()
-        self.PROJECT_ROOT = current_file.parent.parent.parent
-        self.DATA_ROOT = self.PROJECT_ROOT / "backend" / "data_pipeline"
+        from utils.path_helpers import get_project_root, get_data_pipeline_dir
+        self.PROJECT_ROOT = get_project_root()
+        self.DATA_ROOT = get_data_pipeline_dir()
         self.DATA_PATH = self.DATA_ROOT
         self.SESSIONS_ROOT = self.DATA_ROOT / "sessions"
         self.DEFAULT_DOC_DIR = self.DATA_ROOT / "doc"
@@ -92,8 +95,8 @@ class RAGConfig:
         # 1-2. Neo4j 설정 (Deep Graph Traversal용)
         #############################################
         self.NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-        self.NEO4J_USER = os.getenv("NEO4J_USER", "")
-        self.NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "")
+        self.NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+        self.NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your-password-here")
         self.GRAPH_MAX_HOPS = int(os.getenv("GRAPH_MAX_HOPS", "6"))
 
         #############################################
@@ -106,43 +109,43 @@ class RAGConfig:
         self.SGLANG_KEEPALIVE_INTERVAL = int(os.getenv("SGLANG_KEEPALIVE_INTERVAL", "20"))
 
         # ── 2-1. 생성기 (Generator) ─────────────────
-        self.LLM_MODEL = os.getenv("LLM_MODEL", "your-llm-model")  # ~16GB
+        self.LLM_MODEL = os.getenv("LLM_MODEL", "your-llm-model-name")  # e.g., your-llm-model-name (~16GB)
         self.SGLANG_GENERATOR_ENDPOINT = os.getenv("SGLANG_GENERATOR_ENDPOINT", "http://localhost:30000")
-        self.SGLANG_GENERATOR_PORT = 30000
-        self.SGLANG_GENERATOR_DEVICE = "cuda:0"
-        self.SGLANG_GENERATOR_MEM_FRACTION = 0.3                 # cuda:0 단독 사용
+        self.SGLANG_GENERATOR_PORT = int(os.getenv("SGLANG_GENERATOR_PORT", "30000"))
+        self.SGLANG_GENERATOR_DEVICE = os.getenv("SGLANG_GENERATOR_DEVICE", "cuda:0")
+        self.SGLANG_GENERATOR_MEM_FRACTION = float(os.getenv("SGLANG_GENERATOR_MEM_FRACTION", "0.3"))
 
         # ── 2-2. 임베딩 (Embedding) ─────────────────
-        self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "your-embedding-model")  # ~8GB
+        self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "your-embedding-model-name")  # e.g., your-embedding-model-name (~8GB)
         self.SGLANG_EMBEDDING_ENDPOINT = os.getenv("SGLANG_EMBEDDING_ENDPOINT", "http://localhost:30001")
         self.SGLANG_EMBEDDING_MODEL = self.EMBEDDING_MODEL
-        self.SGLANG_EMBEDDING_PORT = 30001
-        self.SGLANG_EMBEDDING_DEVICE = "cuda:1"
-        self.SGLANG_EMBEDDING_MEM_FRACTION = 0.15                  # cuda:1 공유
+        self.SGLANG_EMBEDDING_PORT = int(os.getenv("SGLANG_EMBEDDING_PORT", "30001"))
+        self.SGLANG_EMBEDDING_DEVICE = os.getenv("SGLANG_EMBEDDING_DEVICE", "cuda:1")
+        self.SGLANG_EMBEDDING_MEM_FRACTION = float(os.getenv("SGLANG_EMBEDDING_MEM_FRACTION", "0.15"))
 
         # ── 2-3. 리랭커 (Reranker) ──────────────────
-        self.RERANKER_MODEL_NAME = os.getenv("RERANKER_MODEL", "your-embedding-model")  # ~8GB
+        self.RERANKER_MODEL_NAME = os.getenv("RERANKER_MODEL", "your-reranker-model-name")  # e.g., your-reranker-model-name (~8GB)
         self.SGLANG_RERANKER_ENDPOINT = os.getenv("SGLANG_RERANKER_ENDPOINT", "http://localhost:30002")
         self.SGLANG_RERANKER_MODEL = self.RERANKER_MODEL_NAME
-        self.SGLANG_RERANKER_PORT = 30002
-        self.SGLANG_RERANKER_DEVICE = "cuda:1"
-        self.SGLANG_RERANKER_MEM_FRACTION = 0.15                   # cuda:1 공유
+        self.SGLANG_RERANKER_PORT = int(os.getenv("SGLANG_RERANKER_PORT", "30002"))
+        self.SGLANG_RERANKER_DEVICE = os.getenv("SGLANG_RERANKER_DEVICE", "cuda:1")
+        self.SGLANG_RERANKER_MEM_FRACTION = float(os.getenv("SGLANG_RERANKER_MEM_FRACTION", "0.15"))
 
         # ── 2-4. 리파이너 (Refiner) ─────────────────
-        self.REFINER_MODEL = os.getenv("REFINER_MODEL", "your-refiner-model")  # ~2GB
+        self.REFINER_MODEL = os.getenv("REFINER_MODEL", "your-refiner-model-name")  # e.g., your-refiner-model-name (~2GB)
         self.SGLANG_REFINER_ENDPOINT = os.getenv("SGLANG_REFINER_ENDPOINT", "http://localhost:30003")
         self.SGLANG_REFINER_MODEL = self.REFINER_MODEL
-        self.SGLANG_REFINER_PORT = 30003
-        self.SGLANG_REFINER_DEVICE = "cuda:1"
-        self.SGLANG_REFINER_MEM_FRACTION = 0.1                    # cuda:1 공유
+        self.SGLANG_REFINER_PORT = int(os.getenv("SGLANG_REFINER_PORT", "30003"))
+        self.SGLANG_REFINER_DEVICE = os.getenv("SGLANG_REFINER_DEVICE", "cuda:1")
+        self.SGLANG_REFINER_MEM_FRACTION = float(os.getenv("SGLANG_REFINER_MEM_FRACTION", "0.1"))
 
         # ── 2-5. 쿼리 리라이터 (Query Rewriter) ─────
-        self.QUERY_REWRITE_MODEL_NAME = os.getenv("QUERY_REWRITER_MODEL", "your-query-rewriter-model")  # ~1.2GB
+        self.QUERY_REWRITE_MODEL_NAME = os.getenv("QUERY_REWRITE_MODEL", "your-query-rewriter-model-name")  # e.g., your-query-rewriter-model-name (~1.2GB)
         self.SGLANG_QUERY_REWRITER_ENDPOINT = os.getenv("SGLANG_QUERY_REWRITER_ENDPOINT", "http://localhost:30004")
         self.SGLANG_QUERY_REWRITER_MODEL = self.QUERY_REWRITE_MODEL_NAME
-        self.SGLANG_QUERY_REWRITER_PORT = 30004
-        self.SGLANG_QUERY_REWRITER_DEVICE = "cuda:1"
-        self.SGLANG_QUERY_REWRITER_MEM_FRACTION = 0.1             # cuda:1 공유
+        self.SGLANG_QUERY_REWRITER_PORT = int(os.getenv("SGLANG_QUERY_REWRITER_PORT", "30004"))
+        self.SGLANG_QUERY_REWRITER_DEVICE = os.getenv("SGLANG_QUERY_REWRITER_DEVICE", "cuda:1")
+        self.SGLANG_QUERY_REWRITER_MEM_FRACTION = float(os.getenv("SGLANG_QUERY_REWRITER_MEM_FRACTION", "0.1"))
 
         # ── 2-6. HopClassifier (생성기 서버 공유) ───
         self.HOP_CLASSIFIER_MODEL = self.LLM_MODEL
@@ -158,17 +161,17 @@ class RAGConfig:
         self.GRAPH_EXTRACTOR_CHUNK_SIZE = int(os.getenv("GRAPH_EXTRACTOR_CHUNK_SIZE", "800"))
 
         # ── 2-8. 마인드맵 / 요약 (sgl.Engine in-process, LazyModelManager 관리) ──
-        self.MINDMAP_MODEL = os.getenv("MINDMAP_MODEL", "your-llm-model")
-        self.MINDMAP_DEVICE = "cuda:0"
-        self.MINDMAP_MEM_FRACTION = 0.5
-        self.MINDMAP_MAX_TOKENS = 8192
-        self.MINDMAP_TOKEN_BUFFER = 500
+        self.MINDMAP_MODEL = os.getenv("MINDMAP_MODEL", "your-mindmap-model-name")  # e.g., your-llm-model-name
+        self.MINDMAP_DEVICE = os.getenv("MINDMAP_DEVICE", "cuda:0")
+        self.MINDMAP_MEM_FRACTION = float(os.getenv("MINDMAP_MEM_FRACTION", "0.5"))
+        self.MINDMAP_MAX_TOKENS = int(os.getenv("MINDMAP_MAX_TOKENS", "8192"))
+        self.MINDMAP_TOKEN_BUFFER = int(os.getenv("MINDMAP_TOKEN_BUFFER", "500"))
 
         #############################################
         # 3. 모델 파라미터 설정
         #############################################
         # 임베딩 파라미터
-        self.VECTOR_DIMENSION = 2560  # your-model-Embedding-4B 모델의 임베딩 차원
+        self.VECTOR_DIMENSION = 2560  # Generic Model-Embedding-4B 모델의 임베딩 차원
         self.MAX_LENGTH = 512  # 최대 텍스트 길이
         
         # 생성기(GENERATOR) 파라미터
@@ -234,8 +237,25 @@ class RAGConfig:
         self.GOT_OBSERVER_ENDPOINT = os.getenv("GOT_OBSERVER_ENDPOINT", "")      # GoT 전용 관찰자 LLM 엔드포인트 (빈 문자열이면 HOP_CLASSIFIER 공유)
         self.GOT_OBSERVER_MODEL = os.getenv("GOT_OBSERVER_MODEL", "")            # GoT 전용 관찰자 모델명
         
+        # Quality Gate & Backtracking 설정
+        self.QUALITY_GATE_THRESHOLD = float(os.getenv("QUALITY_GATE_THRESHOLD", "0.3"))  # 품질 게이트 통과 임계값
+        self.MAX_BACKTRACK_COUNT = int(os.getenv("MAX_BACKTRACK_COUNT", "2"))            # 최대 백트래킹 횟수
+        
         #############################################
-        # 6. API 엔드포인트 설정
+        # 6-1. Tool Calling & MCP 서버 설정
+        #############################################
+        self.TOOL_CALLING_ENABLED = os.getenv("TOOL_CALLING_ENABLED", "true").lower() == "true"
+        self.MCP_SERVER_ENABLED = os.getenv("MCP_SERVER_ENABLED", "false").lower() == "true"
+        self.MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8001")
+        self.MCP_TIMEOUT = int(os.getenv("MCP_TIMEOUT", "30"))
+        
+        # Tool Router 의도 분류 설정
+        self.TOOL_INTENT_CLASSIFIER_ENDPOINT = self.SGLANG_GENERATOR_ENDPOINT  # hop classifier와 동일한 LLM 사용
+        self.TOOL_INTENT_CLASSIFIER_MODEL = self.LLM_MODEL
+        self.TOOL_INTENT_CLASSIFIER_TIMEOUT = 10
+        
+        #############################################
+        # 7. API 엔드포인트 설정
         #############################################
         self.API_BASE_URL = "/api"
         
@@ -340,8 +360,8 @@ class RAGConfig:
         #############################################
         # 6. API 및 토큰 설정
         #############################################
-        self.HF_TOKEN = os.getenv("HF_TOKEN", "")
-        self.OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://localhost:11434")
+        self.HF_TOKEN = "hf_token"
+        self.OLLAMA_API_URL = "http://localhost:11434"
         self.GENERATE_ENDPOINT = "/api/generate"
         
         #############################################
@@ -365,9 +385,9 @@ class RAGConfig:
         # 7-1. Search 시스템 설정
         #############################################      
         # Google Search API 설정
-        self.ENABLE_GOOGLE_SEARCH = True
-        self.GOOGLE_API_KEY = ""
-        self.GOOGLE_CX_ID = ""
+        self.ENABLE_GOOGLE_SEARCH = os.getenv("ENABLE_GOOGLE_SEARCH", "false").lower() == "true"
+        self.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+        self.GOOGLE_CX_ID = os.getenv("GOOGLE_CX_ID", "")
         
         # 연결 관리 설정
         self.SEARCH_CONNECTION_TIMEOUT = 10  # 연결 타임아웃 (초)
@@ -375,8 +395,8 @@ class RAGConfig:
         self.SEARCH_CLOSE_CONNECTION = True  # 요청 후 연결 즉시 종료
         
         # 요약 모델 설정 (md_summarizer 사용)
-        self.SUMMARIZER_MODEL = "your-summarizer-model"
-        self.SUMMARIZER_DEVICE = "cuda" if cuda_available else "cpu"
+        self.SUMMARIZER_MODEL = os.getenv("SUMMARIZER_MODEL", "your-summarizer-model-name")  # e.g., your-summarizer-model-name
+        self.SUMMARIZER_DEVICE = os.getenv("SUMMARIZER_DEVICE", "cuda" if cuda_available else "cpu")
         self.SEARCH_CHUNK_LENGTH = 3600  # 크롤링 데이터 나눠서 요약할 크기
         
         # 크롤링 설정

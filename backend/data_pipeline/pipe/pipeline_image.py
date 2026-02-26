@@ -5,25 +5,34 @@ import os
 import argparse
 import logging
 import subprocess
-import sys
 from pathlib import Path
 
-# 로깅 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+import sys
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from backend.data_pipeline.pipe.bootstrap import (
+    ensure_backend_root,
+    configure_logging,
+    get_backend_dir,
+    get_data_pipeline_dir,
 )
+
+ensure_backend_root()
+configure_logging()
 logger = logging.getLogger(__name__)
 
-# 스크립트 위치를 기준으로 backend/ 디렉토리
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# 경로 기본값
+BACKEND_DIR = get_backend_dir()
+YourCompany_DATA_DIR = get_data_pipeline_dir()
 
 class Config:
     # 입출력 디렉토리 설정
-    LAYOUT_INPUT_DIR = BASE_DIR / "data_pipeline" / "Results" / "2.LayoutDetection"
-    CROP_OUTPUT_DIR = BASE_DIR / "data_pipeline" / "Results" / "3.Crop_image"
-    METADATA_OUTPUT_DIR = BASE_DIR / "data_pipeline" / "Results" / "5.Completion_results" / "image"
+    LAYOUT_INPUT_DIR = YourCompany_DATA_DIR / "Results" / "2.LayoutDetection"
+    CROP_OUTPUT_DIR = YourCompany_DATA_DIR / "Results" / "3.Crop_image"
+    METADATA_OUTPUT_DIR = YourCompany_DATA_DIR / "Results" / "5.Completion_results" / "image"
     
     # 처리 옵션 (필요 시 설정에서 수정 가능)
     SKIP_EXISTING = True

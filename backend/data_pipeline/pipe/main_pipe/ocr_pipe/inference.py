@@ -19,12 +19,10 @@ try:
 except ImportError:
     sgl = None
 
-# 프로젝트 루트 디렉토리를 Python 경로에 추가
-project_root = str(Path(__file__).resolve().parent.parent.parent.parent.parent.parent)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+from backend.data_pipeline.pipe.bootstrap import ensure_backend_root
 
-# 절대 경로 임포트 사용
+ensure_backend_root()
+
 import backend.data_pipeline.pipe.main_pipe.ocr_pipe.image_utils as image_utils
 import backend.data_pipeline.pipe.main_pipe.ocr_pipe.table_format as table_format
 import backend.data_pipeline.pipe.main_pipe.ocr_pipe.prompts as prompts
@@ -129,7 +127,7 @@ def shutdown_engine():
             except Exception as e:
                 _log(f"Error during engine shutdown: {e}")
 
-def build_vision_prompt(question):
+def build_qwen2_5_vl_prompt(question):
     return (
             "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
             f"<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>"
@@ -141,7 +139,7 @@ def build_image_to_markdown_query(image_path: str, image_rotation: int = 0) -> d
     assert image_rotation in [0, 90, 180, 270], "Invalid image rotation provided in build_image_query"
     image = get_page_image(image_path, 1, image_rotation=image_rotation)
     question = build_page_to_markdown_prompt()
-    prompt = build_vision_prompt(question)
+    prompt = build_qwen2_5_vl_prompt(question)
     query = {
         "prompt": prompt,
         "multi_modal_data": {"image": image},
