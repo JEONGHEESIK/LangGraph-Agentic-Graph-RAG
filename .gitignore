@@ -62,4 +62,5 @@ Jenkinsfile
 
 #sessions
 /backend/data_pipeline/sessions
-
+/backend\notebooklm\weaviate_s.py
+/backend\notebooklm\clean_weaviate.py
