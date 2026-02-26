@@ -15,7 +15,11 @@
 [English](../README.md) | 한국어 | [中文](README_ZH.md)
 </div>
 
-본 프로젝트는 기존 단일 Vector RAG의 한계를 극복하고 복잡한 다중 홉(Multi-hop) 추론 질문에 대한 답변 정확도를 향상시키기 위해 구축되었습니다. 동적 라우팅을 통해 불필요한 DB 트래픽과 토큰 비용을 최소화하였으며, 단순한 질의응답을 넘어 향후 자율적으로 사고하고 행동하는 Agentic AI 로의 확장성을 고려해 설계되었습니다.
+기존의 단일 벡터(Single-vector) RAG 시스템은 복잡한 다단계(Multi-hop) 질의를 처리하는 데 한계가 있었으며, 수동적인 정보 검색 역할에 머무르는 문제가 있었습니다. 이를 극복하기 위해 처음에는 LangGraph와 SGLang을 기반으로 추론 정확도를 높이고 불필요한 데이터베이스 트래픽을 최소화하는 3-Way 라우팅 기반의 Agentic Graph RAG를 설계했습니다.
+
+하지만 아키텍처를 구체화하는 과정에서, 이 견고한 검색 파이프라인 위에 사용자의 의도를 파악하는 **라우팅 레이어(Tool Router)**와 **MCP(Model Context Protocol)**만 더 얹는다면 완전한 자율형 Agentic AI 시스템을 구축하는 것이 가능하겠다는 판단이 들었습니다.
+
+이러한 확장성을 깊이 고려하여 아키텍처를 발전시킨 결과, 현재의 프레임워크가 완성되었습니다. 이 시스템은 사용자의 의도를 동적으로 분류하여 깊이 있는 지식 검색(Graph RAG)과 연산 작업(계산기, SQL, API 등) 사이를 매끄럽게 전환합니다. 지능형 백트래킹(Intelligent backtracking) 및 품질 검증(Quality Gate) 로직과 결합된 이 프로젝트는, 단순한 질의응답을 넘어 능동적으로 사고하고 도구를 실행하는 AI 시스템을 위한 가장 확장성 높은 기반을 제공합니다.
 
 LangGraph-Agentic-Graph RAG는 **LangGraph + SGLang** 기반의 벡터–그래프 하이브리드 RAG 플랫폼입니다. 수집 파이프라인은 LangGraph 상태 머신과 체크포인트 영속성을 통해 원시 문서를 Markdown 청크 및 그래프 메타데이터로 변환합니다. 쿼리 시점에는 품질 게이트 백트래킹이 적용된 홉 기반 라우터가 Vector, Weaviate GraphRAG, Neo4j GraphDB 세 가지 검색 경로 중 하나를 선택하여 답변을 생성합니다.
 
@@ -106,8 +110,8 @@ planner → tool_router ┬→ rag_router →┬→ vector_retriever  ──→�
 1. **변환 & 레이아웃**: `run_file_processor.py`가 PDF/Office/이미지/오디오 입력을 처리 → `Results/1.Converted_images` + `Results/2.LayoutDetection`.
 2. **OCR & Markdown**: SGLang 기반 OCRFlux를 사용하는 `run_ocr_processing()`이 페이지별 Markdown 생성 → `Results/4.OCR_results`.
 3. **LLM 메타데이터 추출**: `LLMMetadataExtractor`가 Markdown에서 엔티티/이벤트/관계 추출 → `Results/8.graph_metadata/*.graph.json`.
-   - **청크 크기**: configurable via `GRAPH_EXTRACTOR_CHUNK_SIZE
-   - **타임아웃**: configurable via `GRAPH_EXTRACTOR_API_TIMEOUT
+   - **청크 크기**: configurable via `GRAPH_EXTRACTOR_CHUNK_SIZE`
+   - **타임아웃**: configurable via `GRAPH_EXTRACTOR_API_TIMEOUT`
    - **재시도 로직**: 타임아웃 발생 시 SGLang generator 서버 재시작 후 동일 청크 1회 재시도
    - **Keepalive**: 처리 중 20초마다 서버 touch하는 백그라운드 스레드
 4. **그래프 업서트**:

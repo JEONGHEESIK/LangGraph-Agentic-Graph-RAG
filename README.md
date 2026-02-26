@@ -15,7 +15,11 @@
 English | [한국어](README/README_KO.md) | [中文](README/README_ZH.md)
 </div> 
 
-This project was developed to overcome the limitations of traditional single-vector RAG systems, significantly improving answer accuracy for complex, multi-hop reasoning queries. By implementing dynamic routing, it minimizes unnecessary database traffic and token consumption. Furthermore, beyond simple question-answering, the architecture is designed with high scalability in mind, laying a robust foundation for autonomous, thinking, and acting Agentic AI systems.
+Traditional single-vector RAG systems face inherent limitations when dealing with complex, multi-hop queries, often remaining confined to passive information retrieval. To overcome this, I initially designed the Agentic Graph RAG—powered by LangGraph and SGLang—featuring an adaptive 3-way retrieval routing system to maximize reasoning accuracy and minimize unnecessary database traffic.
+
+However, during the architectural design phase, I realized that by simply adding an intent-based Tool Routing layer and Model Context Protocol (MCP) on top of this robust retrieval foundation, it would be entirely possible to build a fully autonomous Agentic AI system.
+
+With this high scalability in mind, the architecture was expanded. The resulting framework dynamically classifies user intent to seamlessly switch between deep knowledge retrieval and computational tasks (Calculator, SQL, APIs). Coupled with intelligent backtracking and Quality Gate validation, this project lays a highly scalable foundation for AI systems that not only retrieve information but actively think and execute tools.
 
 LangGraph-Agentic-Graph RAG is a vector–graph hybrid RAG platform powered by **LangGraph + SGLang**. The ingestion pipeline converts raw documents into Markdown chunks and graph metadata via LangGraph state machines with checkpoint persistence. During query time, a hop-based router with quality-gate backtracking selects among three retrieval paths—Vector, Weaviate GraphRAG, or Neo4j GraphDB—to generate answers.
 
@@ -128,8 +132,8 @@ Handled by `LangGraphUploadPipeline` (`langgraph_upload_pipeline.py`) with `Memo
 1. **Conversion & Layout**: `run_file_processor.py` handles PDF/Office/image/audio inputs → `Results/1.Converted_images` + `Results/2.LayoutDetection`.
 2. **OCR & Markdown**: `run_ocr_processing()` with SGLang-powered OCRFlux produces per-page Markdown → `Results/4.OCR_results`.
 3. **LLM Metadata Extraction**: `LLMMetadataExtractor` extracts entities/events/relations from Markdown → `Results/8.graph_metadata/*.graph.json`.
-   - **Chunk size**: configurable via `GRAPH_EXTRACTOR_CHUNK_SIZE
-   - **Timeout**: configurable via `GRAPH_EXTRACTOR_API_TIMEOUT
+   - **Chunk size**: configurable via `GRAPH_EXTRACTOR_CHUNK_SIZE`
+   - **Timeout**: configurable via `GRAPH_EXTRACTOR_API_TIMEOUT`
    - **Retry logic**: On timeout, SGLang generator server restarts and retries the same chunk once
    - **Keepalive**: Background thread touches server every `SGLANG_KEEPALIVE_INTERVAL` seconds during processing
 4. **Graph Upsert**:

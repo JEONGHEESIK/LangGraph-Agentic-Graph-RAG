@@ -15,7 +15,11 @@
 [English](../README.md) | [한국어](README_KO.md) | 中文
 </div>
 
-本项目旨在克服传统单一向量检索（Vector RAG）的局限性，显著提升复杂多跳（Multi-hop）推理问答的准确性。通过引入动态路由（Dynamic Routing）机制，最大限度地减少了不必要的数据库访问流量与 Token 消耗。此外，该架构不仅局限于基础的问答功能，更充分考虑了未来的可扩展性，为向具备自主思考与行动能力的 Agentic AI 系统演进奠定了坚实基础。
+传统的单向量（Single-vector）RAG 系统在处理复杂的多跳（Multi-hop）查询时面临固有局限，往往只能停留在被动的信息检索阶段。为了克服这一问题，我最初设计了基于 LangGraph 和 SGLang 的 Agentic Graph RAG，通过自适应的 3-Way 路由机制来最大化推理准确性并减少不必要的数据库流量。
+
+然而，在架构设计过程中我意识到，只要在这个坚实的检索基础之上，增加一个用于意图分类的**路由层（Tool Router）**并结合 MCP（模型上下文协议），就完全有可能构建出一个高度自主的 Agentic AI 系统。
+
+基于这种对高可扩展性的考量，我扩展了整体架构。最终形成的框架能够动态对用户意图进行分类，在深度知识检索（Graph RAG）和计算任务（计算器、SQL、API 等）之间实现无缝切换。结合智能回溯和 Quality Gate 质量验证，本项目不仅打破了传统问答的限制，更为构建能够主动思考并执行工具的 AI 系统奠定了高度可扩展的坚实基础。
 
 LangGraph-Graph RAG 是一个基于 **LangGraph + SGLang** 的向量–图混合 RAG 平台。
 数据摄取管道通过带有检查点持久化的 LangGraph 状态机将原始文档转换为 Markdown 块和图元数据。在查询阶段，带有质量门控回溯的跳数路由器从 Vector、Weaviate GraphRAG 或 Neo4j GraphDB 三条检索路径中选择一条来生成答案。
