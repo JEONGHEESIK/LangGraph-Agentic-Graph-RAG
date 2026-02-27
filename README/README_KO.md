@@ -97,9 +97,9 @@ planner → tool_router ┬→ rag_router →┬→ vector_retriever  ──→�
 
 **Tool Executor**: MCP 서버(`MCP_SERVER_ENABLED=true`인 경우) 또는 로컬 fallback을 통해 도구를 실행합니다. 현재 지원:
 - Calculator (AST 기반 안전한 평가)
-- SQL executor (스텁)
-- API caller (스텁)
-- Code runner (스텁)
+- SQL executor
+- API caller
+- Code runner
 
 ---
 
@@ -319,9 +319,9 @@ MCP (Model Context Protocol) 서버는 LangGraph RAG 시스템의 툴 실행을 
 ### 기능
 
 - **Calculator**: AST 기반 안전한 수식 평가
-- **SQL Executor**: SQL 쿼리 실행 (스텁 구현, 확장 가능)
-- **API Caller**: 외부 API 호출 (스텁 구현, 확장 가능)
-- **Code Runner**: 코드 실행 샌드박스 (스텁 구현, 확장 가능)
+- **SQL Executor**: SQL 쿼리 실행 (확장 가능)
+- **API Caller**: 외부 API 호출 (확장 가능)
+- **Code Runner**: 코드 실행 샌드박스 (확장 가능)
 
 ### 설치 및 실행
 

@@ -97,9 +97,9 @@ planner → tool_router ┬→ rag_router →┬→ vector_retriever  ──→�
 
 **Tool Executor**：通过 MCP 服务器（如果 `MCP_SERVER_ENABLED=true`）或本地 fallback 执行工具。当前支持：
 - Calculator（基于 AST 的安全评估）
-- SQL executor（存根）
-- API caller（存根）
-- Code runner（存根）
+- SQL executor
+- API caller
+- Code runner
 
 ---
 
@@ -318,9 +318,9 @@ MCP（模型上下文协议）服务器是一个独立的 FastAPI 服务，负�
 ### 功能
 
 - **Calculator**：基于 AST 的安全数学表达式求值
-- **SQL Executor**：SQL 查询执行（存根实现，可扩展）
-- **API Caller**：外部 API 调用（存根实现，可扩展）
-- **Code Runner**：代码执行沙箱（存根实现，可扩展）
+- **SQL Executor**：SQL 查询执行（可扩展）
+- **API Caller**：外部 API 调用（可扩展）
+- **Code Runner**：代码执行沙箱（可扩展）
 
 ### 安装与运行
 

@@ -119,9 +119,9 @@ planner → tool_router ┬→ rag_router →┬→ vector_retriever  ──→�
 - Intent classification: LLM-based with heuristic fallback
 - Currently supports:
 - Calculator (AST-based safe evaluation)
-- SQL executor (stub)
-- API caller (stub)
-- Code runner (stub)
+- SQL executor
+- API caller
+- Code runner
 
 ---
 
@@ -283,7 +283,7 @@ backend/
      - hop ≥ 6 → `graphdb_retriever`
    - **tool_executor** (for computational tasks) → executes tool via MCP server or local fallback:
      - Calculator: AST-based safe math evaluation
-     - SQL/API/Code: stub implementations (extensible via MCP)
+     - SQL/API/Code: extensible via MCP
    - **retrieval node** (Path 1/2/3) → executes selected retrieval strategy.
    - **quality_gate** → Observer LLM scores result (0.0–1.0).
      - If quality < `QUALITY_GATE_THRESHOLD` → **intelligent backtracking**: `_select_best_path()` evaluates remaining paths based on query keywords and hop count, selects the most suitable alternative (max `MAX_BACKTRACK_COUNT` retries).
@@ -362,9 +362,9 @@ The MCP (Model Context Protocol) server is an independent FastAPI service that h
 ### Features
 
 - **Calculator**: AST-based safe mathematical expression evaluation
-- **SQL Executor**: SQL query execution (stub implementation, extensible)
-- **API Caller**: External API invocation (stub implementation, extensible)
-- **Code Runner**: Code execution sandbox (stub implementation, extensible)
+- **SQL Executor**: SQL query execution (extensible)
+- **API Caller**: External API invocation (extensible)
+- **Code Runner**: Code execution sandbox ( extensible)
 
 ### Installation & Run
 
