@@ -80,7 +80,7 @@ class RAGPipeline:
             raise
 
     async def load_engine(self):
-        """SGLang 엔진을 비동기 인터페이스로 로드"""
+        """SGLang 엔진을 비동기 인터페이스로 로드 (하위 호환성용)"""
         # 내부적으로는 동기 함수를 호출하지만, 호출하는 쪽이 메인 스레드여야 함
         self.load_engine_sync()
 

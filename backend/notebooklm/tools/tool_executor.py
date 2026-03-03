@@ -195,6 +195,28 @@ class ToolExecutor:
         if not text:
             return ""
 
+        lowered = text.lower()
+        
+        # 제곱근 패턴 처리
+        sqrt_patterns = [
+            (r"(\d+)\s*의\s*제곱근", r"sqrt(\1)"),
+            (r"제곱근\s*(\d+)", r"sqrt(\1)"),
+            (r"루트\s*(\d+)", r"sqrt(\1)"),
+            (r"(\d+)\s*루트", r"sqrt(\1)"),
+            (r"sqrt\s*(\d+)", r"sqrt(\1)"),
+        ]
+        for pattern, replacement in sqrt_patterns:
+            lowered = re.sub(pattern, replacement, lowered)
+        
+        # 거듭제곱 패턴 처리
+        power_patterns = [
+            (r"(\d+)\s*의\s*(\d+)\s*제곱", r"\1 ** \2"),
+            (r"(\d+)\s*제곱", r"\1 ** 2"),
+        ]
+        for pattern, replacement in power_patterns:
+            lowered = re.sub(pattern, replacement, lowered)
+
+        # 기본 연산자 치환
         replacements = {
             " 곱하기 ": " * ",
             " times ": " * ",
@@ -208,12 +230,11 @@ class ToolExecutor:
             " divide ": " / ",
             " 나눗셈 ": " / ",
         }
-
-        lowered = text.lower()
         for key, value in replacements.items():
             lowered = lowered.replace(key.strip(), value)
 
-        cleaned = re.sub(r"[^0-9+\-*/().%^]", " ", lowered)
+        # 숫자, 연산자, 함수명만 남기기
+        cleaned = re.sub(r"[^0-9+\-*/().%^a-z]", " ", lowered)
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
         return cleaned
 
