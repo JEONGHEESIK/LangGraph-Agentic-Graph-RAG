@@ -7,6 +7,7 @@ import ast
 import json
 import logging
 import re
+import math
 from typing import Any, Dict, Literal, Optional
 
 try:  
@@ -17,6 +18,31 @@ except ImportError:
 from .mcp_client import MCPClient
 
 logger = logging.getLogger(__name__)
+
+
+def _sigma_function(start: float, end: float) -> float:
+    """복잡한 수식 계산"""
+    start_i = int(round(start))
+    end_i = int(round(end))
+    if start_i > end_i:
+        start_i, end_i = end_i, start_i
+    count = end_i - start_i + 1
+    return (start_i + end_i) * count / 2
+
+
+ALLOWED_MATH_FUNCTIONS = {
+    "sqrt": math.sqrt,
+    "cbrt": lambda x: math.copysign(abs(x) ** (1 / 3), x),
+    "abs": abs,
+    "log": math.log,
+    "ln": math.log,
+    "log10": math.log10,
+    "exp": math.exp,
+    "sin": math.sin,
+    "cos": math.cos,
+    "tan": math.tan,
+    "sigma": _sigma_function,
+}
 
 
 class ToolExecutor:
@@ -166,7 +192,28 @@ class ToolExecutor:
 
     def _extract_math_expression(self, text: str) -> str:
         """텍스트에서 수식 추출."""
-        cleaned = re.sub(r"[^0-9+\-*/().%^]", " ", text)
+        if not text:
+            return ""
+
+        replacements = {
+            " 곱하기 ": " * ",
+            " times ": " * ",
+            " multiply ": " * ",
+            " x ": " * ",
+            " 더하기 ": " + ",
+            " plus ": " + ",
+            " 빼기 ": " - ",
+            " minus ": " - ",
+            " 나누기 ": " / ",
+            " divide ": " / ",
+            " 나눗셈 ": " / ",
+        }
+
+        lowered = text.lower()
+        for key, value in replacements.items():
+            lowered = lowered.replace(key.strip(), value)
+
+        cleaned = re.sub(r"[^0-9+\-*/().%^]", " ", lowered)
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
         return cleaned
 
