@@ -55,7 +55,7 @@ LangGraph-Agentic-Graph RAG는 LangGraph와 SGLang을 기반으로 구동되는 
   - **상태 추적**: `tried_paths` 필드가 실패한 전략의 재시도를 방지
 
 - **3-Way 검색 라우팅**: 쿼리 복잡도(홉 수)가 최적의 검색 전략을 결정합니다:
-  - **Path 1 – Vector RAG (≤ 2 홉)**: BM25 + 리랭커를 통한 Late-chunked TextDocument 코퍼스 상의 빠른 의미 유사성 검색. 직접적인 사실 확인 질문에 이상적입니다.
+  - **Path 1 – Vector RAG (≤ 2 홉)**: Late-chunked TextDocument 코퍼스 상의 빠른 의미 유사성 검색. 직접적인 사실 확인 질문에 이상적입니다.
   - **Path 2 – Weaviate Cross-Reference GraphRAG (3–5 홉)**: BM25 시드 엔티티 검색 후 Weaviate 내에서 다중 홉 상호 참조 탐색(source/target/event refs). 관계를 탐색하여 쿼리와 인접한 엔티티 및 이벤트를 발굴합니다.
   - **Path 3 – Neo4j Deep Graph Traversal (≥ 6 홉)**: 스키마 중심의 관계 추론을 위한 Cypher 기반 심층 그래프 탐색. 광범위한 그래프 탐색이 필요한 복잡한 다중 엔티티 쿼리를 처리합니다.
   - **홉 분류**: 하이브리드 LLM + 휴리스틱 접근법으로 쿼리 복잡도를 추정하며, LLM 1차 분류 및 키워드 기반 폴백을 사용합니다.
