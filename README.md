@@ -339,7 +339,7 @@ backend/
      - **Output**: `max_hops`, `retrieval_path`, `tried_paths`
 
    * **Step 4a: Retrieval Execution** (Path 1/2/3)
-     - **Path 1**: BM25 semantic search + reranker on TextDocument
+     - **Path 1**: semantic search + reranker on TextDocument
      - **Path 2**: BM25 seed search + Weaviate cross-reference multi-hop traversal
      - **Path 3**: Neo4j Cypher deep graph traversal
      - **Output**: `context_snippets`, `entities`, `events`, `relations`

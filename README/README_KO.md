@@ -294,7 +294,7 @@ backend/
      - **출력**: `max_hops`, `retrieval_path`, `tried_paths`
 
    * **Step 4a: 검색 실행** (Path 1/2/3)
-     - **Path 1**: TextDocument 상의 BM25 의미 검색 + 리랭커
+     - **Path 1**: TextDocument 상의 의미 검색 + 리랭커
      - **Path 2**: BM25 시드 검색 + Weaviate 상호 참조 다중 홉 탐색
      - **Path 3**: Neo4j Cypher 심층 그래프 탐색
      - **출력**: `context_snippets`, `entities`, `events`, `relations`

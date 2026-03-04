@@ -295,7 +295,7 @@ backend/
      - **输出**：`max_hops`, `retrieval_path`, `tried_paths`
 
    * **Step 4a: 检索执行** (路径 1/2/3)
-     - **路径 1**：TextDocument 上的 BM25 语义搜索 + 重排序器
+     - **路径 1**：TextDocument 上的 语义搜索 + 重排序器
      - **路径 2**：BM25 种子搜索 + Weaviate 交叉引用多跳遍历
      - **路径 3**：Neo4j Cypher 深度图遍历
      - **输出**：`context_snippets`, `entities`, `events`, `relations`
