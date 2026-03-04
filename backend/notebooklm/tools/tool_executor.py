@@ -309,6 +309,18 @@ class ToolExecutor:
             if isinstance(node.op, ast.USub):
                 return -operand
         
+        if isinstance(node, ast.Call):
+            # 함수 호출 처리 (sqrt, log, sin 등)
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id
+                if func_name in ALLOWED_MATH_FUNCTIONS:
+                    func = ALLOWED_MATH_FUNCTIONS[func_name]
+                    args = [self._eval_ast(arg) for arg in node.args]
+                    return float(func(*args))
+                else:
+                    raise ValueError(f"지원하지 않는 함수: {func_name}")
+            raise ValueError("지원하지 않는 함수 호출 형식입니다.")
+        
         if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
             return float(node.value)
         
