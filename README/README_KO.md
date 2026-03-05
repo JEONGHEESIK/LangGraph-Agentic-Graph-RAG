@@ -25,7 +25,7 @@ LangGraph-Agentic-Graph RAG는 LangGraph와 SGLang을 기반으로 구동되는 
 
 시스템 주요 특징:
 
-- **이중 모드 쿼리 처리**: LLM 기반 의도 분류를 통해 지식 기반 RAG 검색과 연산 도구 실행 사이를 자동으로 라우팅합니다.
+- **이중 모드 쿼리 처리**: LLM 기반 의도 분류를 통해 지식 기반 RAG 검색과 도구 실행 사이를 자동으로 라우팅합니다.
 - **고급 문서 수집**: 체크포인트 영속성을 지원하는 LangGraph 상태 머신을 통해 원본 문서(PDF/이미지/오디오)를 마크다운 청크(Chunk)와 구조화된 그래프 메타데이터로 변환합니다.
 - **지능형 검색 라우팅**: 쿼리 복잡도에 따라 세 가지 검색 경로(Vector, Weaviate Cross-Reference GraphRAG, Neo4j Deep Graph Traversal) 중 하나를 동적으로 선택하며, 품질 게이트 백트래킹을 지원하는 홉(Hop) 기반 라우터입니다.
 - **도구 호출 프레임워크**: 계산기, API 호출, 코드 실행 및 데이터베이스 쿼리를 위한 로컬 폴백(Fallback) 기능이 포함된 MCP(Model Context Protocol) 서버 통합.
